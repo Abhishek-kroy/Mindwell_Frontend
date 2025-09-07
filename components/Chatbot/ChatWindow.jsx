@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, History, Plus, LogOut, Moon, Sun } from 'lucide-react';
+import { X, History, Plus } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { auth } from '../../context/firebase/firebase';
@@ -8,7 +8,7 @@ import ChatInput from './ChatInput';
 import MessageBubble from './MessageBubble';
 import LoadingIndicator from './LoadingIndicator';
 import SessionPanel from './SessionPanel';
-import { decryptText } from '../../src/utils/encryption';
+// import { decryptText } from '../../src/utils/encryption';
 
 const ChatWindow = ({ darkMode, toggleDarkMode }) => {
   const [showHistory, setShowHistory] = useState(true);
@@ -158,17 +158,6 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
                   darkMode={darkMode}
                 />
               </div>
-              <div className={`pt-4 mt-auto border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <button
-                  onClick={handleLogout}
-                  className={`w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg transition-colors ${
-                    darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  <LogOut size={16} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
             </>
           )}
         </aside>
@@ -207,13 +196,13 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
                 <Plus size={16} />
                 <span>New Chat</span>
               </button>
-              <button
+              {/* <button
                 onClick={toggleDarkMode}
                 className={`p-2 rounded-full ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
                 aria-label="Toggle theme"
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
+              </button> */}
             </div>
           </header>
 

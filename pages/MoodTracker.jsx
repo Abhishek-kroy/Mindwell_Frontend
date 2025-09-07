@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Heart, Frown, Zap, AlertCircle, Battery, ChevronRight, X, Moon } from 'lucide-react';
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, setDoc, updateDoc, increment } from "firebase/firestore";
+import { TrendingUp, Heart, AlertCircle, Battery, ChevronRight, X } from 'lucide-react';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { db, auth } from "../context/firebase/firebase";
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const getDateStr = (date) => date.toLocaleDateString('en-CA'); // YYYY-MM-DD
 
@@ -384,19 +384,6 @@ const MoodDashboard = () => {
       </div>
 
       <div className="relative z-10 min-h-screen p-6">
-        {/* Theme Toggle */}
-        <div className="fixed top-6 right-6 z-50">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`p-3 rounded-full backdrop-blur-lg transition-all duration-300 hover:scale-110 ${
-              isDarkMode 
-                ? 'bg-white/10 text-white hover:bg-white/20' 
-                : 'bg-black/10 text-gray-800 hover:bg-black/20'
-            }`}
-          >
-            {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
-          </button>
-        </div>
 
         <div className="max-w-6xl mx-auto transform translate-y-[81px]">
           {/* Hero Section with Image */}

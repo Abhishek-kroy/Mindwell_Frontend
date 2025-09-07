@@ -493,12 +493,6 @@ export default function CommunityPage() {
               </div>
               
               <div className="flex items-center space-x-4">
-                <button 
-                  onClick={toggleDarkMode}
-                  className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                </button>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
