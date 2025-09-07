@@ -17,7 +17,7 @@ import './App.css';
 import MentalWellnessResources from '../pages/WellnessResources';
 import PsychiatristAuth from '../pages/PsychiatristAuth';
 import PsychiatristDashboard from '../pages/PsychiatristDashboard';
-// Removed psychiatrist register page per requirements
+import AddRequest from '../pages/AddRequest';
 
 function AppShell() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -69,6 +69,7 @@ function AppShell() {
             <Route path="/psychiatrist-auth" element={<PsychiatristAuth />} />
             <Route path="/psychiatrist" element={<PsychiatristDashboard />} />
             {/* Registration removed; credentials are pre-provisioned by moderator */}
+            <Route path="/add-request" element={<AddRequest />} />
             
             if (currentUser){currentUser && (
               <Route path="/chatbot" element={ <ChatWindow user={currentUser} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />} />
