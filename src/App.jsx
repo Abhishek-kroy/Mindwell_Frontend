@@ -1,5 +1,5 @@
 import React, { Suspense,useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Home from '../pages/Home';
 import Test from '../pages/Test'; 
 import { Header } from '../components/Header/Header';
@@ -15,9 +15,11 @@ import CookiePolicy from '../pages/CookiePolicy';
 import {TermsOfService} from '../pages/TermsOfService';
 import './App.css';
 import MentalWellnessResources from '../pages/WellnessResources';
+import PsychiatristAuth from '../pages/PsychiatristAuth';
+import PsychiatristDashboard from '../pages/PsychiatristDashboard';
 import AddRequest from '../pages/AddRequest';
 
-function App() {
+function AppShell() {
   const [currentUser, setCurrentUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -45,9 +47,12 @@ function App() {
     );
   }
 
+  const location = useLocation();
+  const hideHeaderOnPaths = ['/psychiatrist-auth'];
+
   return (
-    <Router>
-      <Header />
+    <>
+      {!hideHeaderOnPaths.includes(location.pathname) && <Header />}
       <main>
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
@@ -61,6 +66,9 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/psychiatrist-auth" element={<PsychiatristAuth />} />
+            <Route path="/psychiatrist" element={<PsychiatristDashboard />} />
+            {/* Registration removed; credentials are pre-provisioned by moderator */}
             <Route path="/add-request" element={<AddRequest />} />
             
             if (currentUser){currentUser && (
@@ -73,6 +81,14 @@ function App() {
           </Routes>
         </Suspense>
       </main>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppShell />
     </Router>
   );
 }
