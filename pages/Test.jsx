@@ -58,28 +58,28 @@ const getMentalHealthLevel = (score, mood) => {
     if (score <= 14) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate anxiety." };
     return { level: "Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing severe anxiety. Consider professional support." };
   }
-  
+
   if (mood === 'stress') {
     if (score <= 13) return { level: "Low", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your stress levels are low." };
     if (score <= 19) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate stress." };
     if (score <= 25) return { level: "High", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing high stress." };
     return { level: "Very High", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing very high stress. Consider stress management techniques." };
   }
-  
+
   if (mood === 'anger') {
     if (score <= 7) return { level: "Minimal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your anger levels are minimal." };
     if (score <= 14) return { level: "Mild", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing mild anger." };
     if (score <= 21) return { level: "Moderate", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing moderate anger." };
     return { level: "Severe", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing severe anger. Consider anger management strategies." };
   }
-  
+
   if (mood === 'low') {
     if (score <= 10) return { level: "Normal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your energy levels are normal." };
     if (score <= 20) return { level: "Mild", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're experiencing mild low energy." };
     if (score <= 30) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate low energy." };
     return { level: "Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing severe low energy. Consider consulting a healthcare provider." };
   }
-  
+
   if (mood === 'sad') {
     if (score <= 4) return { level: "Minimal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your mood is positive." };
     if (score <= 9) return { level: "Mild", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're experiencing mild mood concerns." };
@@ -87,7 +87,7 @@ const getMentalHealthLevel = (score, mood) => {
     if (score <= 19) return { level: "Moderately Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing moderately severe mood concerns." };
     return { level: "Severe", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing severe mood concerns. Consider seeking support." };
   }
-  
+
   if (score <= 5) return { level: "Excellent", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your mental wellness is thriving!" };
   if (score <= 10) return { level: "Good", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're maintaining great balance!" };
   if (score <= 15) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "Some mindful attention could help." };
@@ -150,7 +150,7 @@ const FloatingOrbs = () => (
           animationDuration: `${3 + Math.random() * 4}s`,
         }}
       >
-        <div 
+        <div
           className="rounded-full bg-gradient-to-r from-cyan-300/20 via-purple-300/20 to-pink-300/20 blur-sm"
           style={{
             width: `${6 + Math.random() * 12}px`,
@@ -164,7 +164,7 @@ const FloatingOrbs = () => (
 
 const AnimatedGrid = () => (
   <div className="absolute inset-0 opacity-10">
-    <div 
+    <div
       className="w-full h-full"
       style={{
         backgroundImage: `
@@ -208,7 +208,7 @@ const MoodCard = ({ mood, emoji, label, description, onClick, index }) => {
       style={{ animationDelay: `${index * 0.075}s` }}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${colors[mood]} rounded-2xl opacity-0 group-hover:opacity-20 transition-all duration-500 blur-xl ${glowColors[mood]}`}></div>
-      
+
       <div className="relative p-6 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 transition-all duration-500 group-hover:shadow-xl group-hover:bg-white/90">
         <div className="text-center space-y-3">
           <div className="relative">
@@ -222,7 +222,7 @@ const MoodCard = ({ mood, emoji, label, description, onClick, index }) => {
           </h3>
           <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
         </div>
-        
+
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1">
           <ArrowRight className="w-4 h-4 text-gray-400" />
         </div>
@@ -233,11 +233,10 @@ const MoodCard = ({ mood, emoji, label, description, onClick, index }) => {
 
 const AnswerOption = ({ option, index, isSelected, onClick, isAnimating }) => (
   <div
-    className={`relative p-4 rounded-xl cursor-pointer transition-all duration-400 transform hover:scale-102 ${
-      isSelected
+    className={`relative p-4 rounded-xl cursor-pointer transition-all duration-400 transform hover:scale-102 ${isSelected
         ? `bg-gradient-to-r ${option.color} text-white shadow-xl scale-102 border-2 border-white/30`
         : "bg-white/70 backdrop-blur-xl hover:bg-white/80 shadow-md hover:shadow-lg border border-white/30"
-    }`}
+      }`}
     onClick={() => onClick(option.value, index)}
     style={{ animationDelay: `${index * 0.075}s` }}
   >
@@ -254,7 +253,7 @@ const AnswerOption = ({ option, index, isSelected, onClick, isAnimating }) => (
         <CheckCircle className="w-5 h-5 text-white animate-pulse" />
       )}
     </div>
-    
+
     {isSelected && (
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-xl"></div>
     )}
@@ -366,7 +365,7 @@ export default function MentalHealthQuestionnaire() {
     setTimeout(() => {
       setSelectedMood(moodValue);
       setShowWelcome(false);
-      
+
       if (moodValue === 'happy') {
         setQuestions(getQuestionsByMood('sad'));
         setAnswers([]);
@@ -376,7 +375,7 @@ export default function MentalHealthQuestionnaire() {
         setAnswers([]);
         setCurrentQuestionIndex(0);
       }
-      
+
       setLoading(false);
     }, 900);
   };
@@ -393,22 +392,22 @@ export default function MentalHealthQuestionnaire() {
         };
         setResult(happyResult);
         setShowHappyResult(true);
-        
+
         if (auth.currentUser) {
           saveResultsToFirestore(selectedMood, [value], questions, happyResult);
         }
       }, 600);
       return;
     }
-  
+
     setSelectedIndex(index);
-    
+
     setTimeout(() => {
       const updatedAnswers = [...answers];
       updatedAnswers[currentQuestionIndex] = parseInt(value);
-      
+
       const nextIndex = currentQuestionIndex + 1;
-  
+
       if (nextIndex < questions.length) {
         setAnswers(updatedAnswers);
         setCurrentQuestionIndex(nextIndex);
@@ -425,7 +424,7 @@ export default function MentalHealthQuestionnaire() {
         };
         setAnswers(updatedAnswers);
         setResult(assessmentResult);
-        
+
         if (auth.currentUser) {
           saveResultsToFirestore(selectedMood, updatedAnswers, questions, assessmentResult);
         }
@@ -456,13 +455,13 @@ export default function MentalHealthQuestionnaire() {
 
   const fetchMoodAnalysis = async () => {
     if (!result || selectedMood === 'happy') return;
-  
+
     setIsAnalyzing(true);
     setAnalysisError(null);
-  
+
     try {
       const idToken = await auth.currentUser.getIdToken();
-  
+
       // Prepare the complete assessment data to send
       const assessmentData = {
         moodType: selectedMood,
@@ -475,10 +474,10 @@ export default function MentalHealthQuestionnaire() {
         })),
         date: new Date().toISOString()
       };
-  
+
       // Log what we're sending to the backend
       console.log("Sending complete assessment to analyzeMoodTest:", JSON.stringify(assessmentData, null, 2));
-  
+
       const response = await fetch("http://localhost:4000/api/analyzeMoodTest", {
         method: "POST",
         headers: {
@@ -487,14 +486,14 @@ export default function MentalHealthQuestionnaire() {
         },
         body: JSON.stringify(assessmentData)
       });
-  
+
       if (!response.ok) {
         throw new Error("API request failed");
       }
-  
+
       const data = await response.json();
       console.log("Analysis results:", data);
-  
+
       setMoodAnalysis({
         summary: data.analysis,
         recommendations: data.recommendations || [
@@ -510,7 +509,7 @@ export default function MentalHealthQuestionnaire() {
           "Try observing how your mood shifts throughout the day."
         ]
       });
-  
+
       setShowDetailed(true);
     } catch (error) {
       console.error("Error fetching mood analysis:", error);
@@ -524,11 +523,11 @@ export default function MentalHealthQuestionnaire() {
     try {
       const user = auth.currentUser;
       if (!user) return;
-  
+
       const today = new Date();
       const dateStr = today.toISOString().split("T")[0];
       const timestamp = Timestamp.fromDate(today);
-  
+
       const concerns = answers.map((value, index) => {
         if (value >= 2) {
           return {
@@ -541,7 +540,7 @@ export default function MentalHealthQuestionnaire() {
         }
         return null;
       }).filter(Boolean);
-  
+
       const assessmentData = {
         date: timestamp,
         moodType: mood,
@@ -557,12 +556,12 @@ export default function MentalHealthQuestionnaire() {
         video: result?.video ?? videoSuggestions[mood]?.video ?? null,
         summary: happyResponse || null,
       };
-  
+
       const userDocRef = doc(db, "users", user.uid);
-  
+
       const moodDayRef = collection(userDocRef, `moodAssessment/${dateStr}/assessments`);
       await setDoc(doc(moodDayRef), assessmentData);
-  
+
       const summaryRef = doc(db, "users", user.uid, "moodSummary", "summary");
       const summarySnap = await getDoc(summaryRef);
       if (!summarySnap.exists()) {
@@ -570,14 +569,14 @@ export default function MentalHealthQuestionnaire() {
       } else {
         await updateDoc(summaryRef, { [mood]: increment(1) });
       }
-  
+
       const dailyMoodRef = doc(db, "users", user.uid, "dailyMood", dateStr);
       const dailySnap = await getDoc(dailyMoodRef);
-  
+
       let moodCounts = {};
       let mostFrequentMood = mood;
       let latestMood = mood;
-  
+
       if (!dailySnap.exists()) {
         moodCounts[mood] = 1;
       } else {
@@ -585,12 +584,12 @@ export default function MentalHealthQuestionnaire() {
         const prevCounts = { ...prevData };
         delete prevCounts.latestMood;
         delete prevCounts.mostFrequentMood;
-  
+
         moodCounts = {
           ...prevCounts,
           [mood]: (prevCounts[mood] || 0) + 1,
         };
-  
+
         let maxCount = 0;
         for (const key in moodCounts) {
           if (moodCounts[key] > maxCount) {
@@ -599,13 +598,13 @@ export default function MentalHealthQuestionnaire() {
           }
         }
       }
-  
+
       await setDoc(dailyMoodRef, {
         ...moodCounts,
         mostFrequentMood,
         latestMood,
       });
-  
+
       console.log("✅ Assessment saved and stats updated.");
     } catch (error) {
       console.error("❌ Error saving assessment data:", error);
@@ -618,10 +617,10 @@ export default function MentalHealthQuestionnaire() {
       <div className="absolute inset-0 bg-gradient-to-tr from-cyan-50/30 via-transparent to-pink-50/30"></div>
       <FloatingOrbs />
       <AnimatedGrid />
-      
+
       <div className="absolute -top-30 -left-30 w-60 h-60 bg-gradient-to-r from-purple-300/20 via-pink-300/20 to-cyan-300/20 rounded-full blur-2xl animate-pulse"></div>
-      <div className="absolute -bottom-30 -right-30 w-72 h-72 bg-gradient-to-r from-blue-300/15 via-indigo-300/15 to-purple-300/15 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1.5s'}}></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-54 h-54 bg-gradient-to-r from-cyan-300/10 via-teal-300/10 to-emerald-300/10 rounded-full blur-2xl animate-pulse" style={{animationDelay: '3s'}}></div>
+      <div className="absolute -bottom-30 -right-30 w-72 h-72 bg-gradient-to-r from-blue-300/15 via-indigo-300/15 to-purple-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-54 h-54 bg-gradient-to-r from-cyan-300/10 via-teal-300/10 to-emerald-300/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '3s' }}></div>
     </div>
   );
 
@@ -633,8 +632,8 @@ export default function MentalHealthQuestionnaire() {
           <div className="text-center space-y-6">
             <div className="relative">
               <div className="w-18 h-18 border-3 border-purple-200/50 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-18 h-18 border-3 border-transparent border-t-purple-500 border-r-cyan-500 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '0.6s'}}></div>
-              <div className="absolute inset-1.5 w-15 h-15 border-1.5 border-transparent border-t-pink-400 rounded-full animate-spin" style={{animationDuration: '0.9s'}}></div>
+              <div className="absolute inset-0 w-18 h-18 border-3 border-transparent border-t-purple-500 border-r-cyan-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.6s' }}></div>
+              <div className="absolute inset-1.5 w-15 h-15 border-1.5 border-transparent border-t-pink-400 rounded-full animate-spin" style={{ animationDuration: '0.9s' }}></div>
             </div>
             <div className="space-y-2">
               <p className="text-xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 bg-clip-text text-transparent animate-pulse">
@@ -655,6 +654,62 @@ export default function MentalHealthQuestionnaire() {
         <div className="flex-1 flex items-center justify-center pt-[81px]">
           <div className="w-full max-w-5xl mx-auto">
             <div className="text-center mb-12 space-y-6">
+
+              <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-500 bg-clip-text text-transparent leading-tight">
+                How are you feeling today?
+              </h1>
+
+              <p className="text-base md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Step into the future of mental wellness. Our advanced assessment provides
+                <span className="font-semibold text-purple-600"> personalized insights</span> and
+                <span className="font-semibold text-cyan-600"> tailored resources</span> to support your journey.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
+              <MoodCard
+                mood="happy"
+                emoji="😄"
+                label="Happy"
+                description="Feeling joyful, excited, or in high spirits today, share with us"
+                onClick={handleMoodSelect}
+                index={0}
+              />
+              <MoodCard
+                mood="anxiety"
+                emoji="😰"
+                label="Anxious"
+                description="Feeling worried, nervous, or on edge in various situations"
+                onClick={handleMoodSelect}
+                index={1}
+              />
+              <MoodCard
+                mood="stress"
+                emoji="😫"
+                label="Stressed"
+                description="Overwhelmed by daily pressures and responsibilities"
+                onClick={handleMoodSelect}
+                index={2}
+              />
+              <MoodCard
+                mood="low"
+                emoji="😞"
+                label="Low Energy"
+                description="Feeling tired, unmotivated, or lacking enthusiasm"
+                onClick={handleMoodSelect}
+                index={3}
+              />
+              <MoodCard
+                mood="sad"
+                emoji="😢"
+                label="Sad"
+                description="Experiencing feelings of sadness or hopelessness"
+                onClick={handleMoodSelect}
+                index={4}
+              />
+            </div>
+
+            <div className="text-center mt-12 space-y-6">
               <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-100/80 via-pink-100/80 to-cyan-100/80 backdrop-blur-sm rounded-full border border-white/30 shadow-md">
                 <Brain className="w-4 h-4 text-purple-600" />
                 <span className="font-semibold text-sm bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">
@@ -662,59 +717,6 @@ export default function MentalHealthQuestionnaire() {
                 </span>
                 <Sparkles className="w-4 h-4 text-cyan-600" />
               </div>
-              
-              <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-500 bg-clip-text text-transparent leading-tight">
-                How are you feeling today?
-              </h1>
-              
-              <p className="text-base md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                Step into the future of mental wellness. Our advanced assessment provides 
-                <span className="font-semibold text-purple-600"> personalized insights</span> and 
-                <span className="font-semibold text-cyan-600"> tailored resources</span> to support your journey.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
-              <MoodCard 
-                mood="happy" 
-                emoji="😄" 
-                label="Happy" 
-                description="Feeling joyful, excited, or in high spirits today"
-                onClick={handleMoodSelect}
-                index={0}
-              />
-              <MoodCard 
-                mood="anxiety" 
-                emoji="😰" 
-                label="Anxious" 
-                description="Feeling worried, nervous, or on edge about various situations"
-                onClick={handleMoodSelect}
-                index={1}
-              />
-              <MoodCard 
-                mood="stress" 
-                emoji="😫" 
-                label="Stressed" 
-                description="Overwhelmed by daily pressures and responsibilities"
-                onClick={handleMoodSelect}
-                index={2}
-              />
-              <MoodCard 
-                mood="low" 
-                emoji="😞" 
-                label="Low Energy" 
-                description="Feeling tired, unmotivated, or lacking enthusiasm"
-                onClick={handleMoodSelect}
-                index={3}
-              />
-              <MoodCard 
-                mood="sad" 
-                emoji="😢" 
-                label="Sad" 
-                description="Experiencing feelings of sadness or hopelessness"
-                onClick={handleMoodSelect}
-                index={4}
-              />
             </div>
 
             <div className="text-center mt-12 space-y-4">
@@ -753,20 +755,20 @@ export default function MentalHealthQuestionnaire() {
                       Celebrating Your Joy!
                     </span>
                   </div>
-                  
+
                   <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 bg-clip-text text-transparent">
                     That's Wonderful! 🌟
                   </h2>
-                  
+
                   <div className="max-w-2xl mx-auto p-6 bg-gradient-to-br from-yellow-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
                     <div className="text-4xl mb-4">✨</div>
                     <blockquote className="text-base md:text-xl text-gray-700 font-medium leading-relaxed italic">
                       "{result.quote}"
                     </blockquote>
                   </div>
-                  
+
                   <p className="text-gray-600 text-base max-w-xl mx-auto">
-                    Your happiness is truly beautiful! Keep nurturing these positive moments and remember to share your joy with others. 
+                    Your happiness is truly beautiful! Keep nurturing these positive moments and remember to share your joy with others.
                     Here's an uplifting video to amplify your wonderful energy!
                   </p>
                 </div>
@@ -778,7 +780,7 @@ export default function MentalHealthQuestionnaire() {
                       Spread the Joy
                     </h3>
                   </div>
-                  
+
                   <div className="max-w-xl mx-auto aspect-video rounded-xl overflow-hidden shadow-xl border border-white/20">
                     <iframe
                       className="w-full h-full"
@@ -792,14 +794,14 @@ export default function MentalHealthQuestionnaire() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button 
+                  <Button
                     onClick={resetQuiz}
                     className="bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 hover:from-yellow-600 hover:via-orange-600 hover:to-pink-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Share More Joy
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     className="border-2 border-yellow-300 hover:border-yellow-400 bg-white/80 backdrop-blur-sm px-8 py-3 rounded-xl font-bold transition-all duration-300 hover:shadow-md text-yellow-700 hover:text-yellow-800"
                   >
@@ -830,7 +832,7 @@ export default function MentalHealthQuestionnaire() {
                       Assessment Complete
                     </span>
                   </div>
-                  
+
                   <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                     Your Wellness Profile
                   </h2>
@@ -846,7 +848,7 @@ export default function MentalHealthQuestionnaire() {
                     </div>
                     <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-white/10 to-transparent blur-md"></div>
                   </div>
-                  
+
                   <div className={`px-6 py-2 rounded-full bg-gradient-to-r ${result.color} text-white font-bold text-lg shadow-lg border border-white/20`}>
                     {result.level}
                   </div>
@@ -860,7 +862,7 @@ export default function MentalHealthQuestionnaire() {
                         Detailed Analysis
                       </h3>
                     </div>
-                    
+
                     <div className="space-y-4 text-left">
                       <div>
                         <h4 className="font-semibold text-gray-700 mb-2">Summary</h4>
@@ -868,7 +870,7 @@ export default function MentalHealthQuestionnaire() {
                           <ReactMarkdown>{moodAnalysis.summary}</ReactMarkdown>
                         </div>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-semibold text-gray-700 mb-2">Key Insights</h4>
                         <ul className="list-disc list-inside space-y-1 text-gray-600">
@@ -877,7 +879,7 @@ export default function MentalHealthQuestionnaire() {
                           ))}
                         </ul>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-semibold text-gray-700 mb-2">Recommendations</h4>
                         <ul className="list-disc list-inside space-y-1 text-gray-600">
@@ -896,7 +898,7 @@ export default function MentalHealthQuestionnaire() {
                         Curated Resource
                       </h3>
                     </div>
-                    
+
                     <div className="max-w-xl mx-auto aspect-video rounded-xl overflow-hidden shadow-xl border border-white/20">
                       <iframe
                         className="w-full h-full"
@@ -912,7 +914,7 @@ export default function MentalHealthQuestionnaire() {
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   {!showDetailed ? (
-                    <Button 
+                    <Button
                       onClick={fetchMoodAnalysis}
                       disabled={isAnalyzing}
                       className="bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 hover:from-purple-700 hover:via-pink-700 hover:to-cyan-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
@@ -933,7 +935,7 @@ export default function MentalHealthQuestionnaire() {
                       )}
                     </Button>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => setShowDetailed(false)}
                       className="bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 hover:from-purple-700 hover:via-pink-700 hover:to-cyan-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
                     >
@@ -941,8 +943,8 @@ export default function MentalHealthQuestionnaire() {
                       Back to Results
                     </Button>
                   )}
-                  
-                  <Button 
+
+                  <Button
                     onClick={resetQuiz}
                     variant="outline"
                     className="border-2 border-gray-300 hover:border-gray-400 bg-white/80 backdrop-blur-sm px-8 py-3 rounded-xl font-bold transition-all duration-300 hover:shadow-md"
@@ -951,7 +953,7 @@ export default function MentalHealthQuestionnaire() {
                     Take Again
                   </Button>
                 </div>
-                
+
                 {analysisError && (
                   <div className="text-red-500 text-sm mt-2">{analysisError}</div>
                 )}
@@ -982,9 +984,9 @@ export default function MentalHealthQuestionnaire() {
                   {Math.round(progress)}% Complete
                 </span>
               </div>
-              
+
               <div className="relative h-2 bg-gray-200/50 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 rounded-full transition-all duration-700 ease-out shadow-md"
                   style={{ width: `${progress}%` }}
                 >
@@ -998,7 +1000,7 @@ export default function MentalHealthQuestionnaire() {
                 <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 via-purple-700 to-gray-800 bg-clip-text text-transparent leading-relaxed">
                   {currentQuestion?.text}
                 </h2>
-                
+
                 {selectedMood === 'happy' ? (
                   <div className="max-w-xl mx-auto">
                     <textarea
@@ -1054,7 +1056,7 @@ export default function MentalHealthQuestionnaire() {
                   <span>Your privacy is protected</span>
                 </p>
               </div>
-              
+
               <Button
                 onClick={resetQuiz}
                 className="bg-red-100/80 hover:bg-red-200/80 text-red-700 px-6 py-2 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white/30"
