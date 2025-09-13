@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, History, Plus } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
@@ -10,11 +11,12 @@ import LoadingIndicator from './LoadingIndicator';
 import SessionPanel from './SessionPanel';
 // import { decryptText } from '../../src/utils/encryption';
 
-const ChatWindow = ({ darkMode, toggleDarkMode }) => {
+const ChatWindow = ({ darkMode,currentUser }) => {
   const [showHistory, setShowHistory] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const messagesEndRef = useRef(null);
+  const navigator=useNavigate();
 
   const {
     messages,
@@ -34,6 +36,12 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, showHistory]);
+
+useEffect(() => {
+  if (!currentUser) {
+    navigator('/auth');
+  }
+}, [currentUser, navigator]);
 
   
   const fetchSessions = async () => {

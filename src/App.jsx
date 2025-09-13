@@ -74,7 +74,7 @@ function AppShell() {
       </div>
     );
   }
-  
+
   const hideHeaderOnPaths = ["/psychiatrist-auth"];
 
   return (
@@ -104,7 +104,6 @@ function AppShell() {
                 </ProtectedPsychiatristRoute>
               }
             />
-            {currentUser && (
               <Route
                 path="/chatbot"
                 element={
@@ -115,7 +114,6 @@ function AppShell() {
                   />
                 }
               />
-            )}
           </Routes>
         </Suspense>
       </main>
