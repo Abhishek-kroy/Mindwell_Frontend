@@ -42,7 +42,7 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
       const currentUser = getAuth().currentUser;
       if (!currentUser) throw new Error('User not authenticated');
       const idToken = await currentUser.getIdToken();
-      const response = await fetch('http://localhost:4000/api/sessions', {
+      const response = await fetch('https://mindwell-b.onrender.com/api/sessions', {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
@@ -60,24 +60,29 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
       const currentUser = getAuth().currentUser;
       if (!currentUser) throw new Error('User not authenticated');
       const idToken = await currentUser.getIdToken();
-      const res = await fetch(`http://localhost:4000/api/sessions/${sessionRef}`, {
+      const res = await fetch(`https://mindwell-b.onrender.com/api/sessions/${sessionRef}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load session');
   
       // 🔐 Decrypt history
-      const decryptedHistory = await Promise.all(
-        data.session.history.map(async (msg) => ({
-          role: msg.role,
-          parts: [{ text: await decryptText(msg.parts[0].text) }],
-          videos: msg.videos || [],
-        }))
-      );
+      // const decryptedHistory = await Promise.all(
+      //   data.session.history.map(async (msg) => ({
+      //     role: msg.role,
+      //     parts: [{ text: await decryptText(msg.parts[0].text) }],
+      //     videos: msg.videos || [],
+      //   }))
+      // );
   
+      // loadSession({
+      //   sessionRef: data.session.sessionRef,
+      //   history: decryptedHistory,
+      // });
+
       loadSession({
         sessionRef: data.session.sessionRef,
-        history: decryptedHistory,
+        history: data.session.history, // Use history as-is
       });
   
       setShowHistory(false);
@@ -92,7 +97,7 @@ const ChatWindow = ({ darkMode, toggleDarkMode }) => {
       const currentUser = getAuth().currentUser;
       if (!currentUser) throw new Error('User not authenticated');
       const idToken = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:4000/api/sessions/${sessionRef}`, {
+      const response = await fetch(`https://mindwell-b.onrender.com/api/sessions/${sessionRef}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${idToken}` },
       });

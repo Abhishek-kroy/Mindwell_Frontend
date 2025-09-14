@@ -479,7 +479,7 @@ export default function MentalHealthQuestionnaire() {
       // Log what we're sending to the backend
       console.log("Sending complete assessment to analyzeMoodTest:", JSON.stringify(assessmentData, null, 2));
   
-      const response = await fetch("http://localhost:4000/api/analyzeMoodTest", {
+      const response = await fetch("https://mindwell-b.onrender.com/api/analyzeMoodTest", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

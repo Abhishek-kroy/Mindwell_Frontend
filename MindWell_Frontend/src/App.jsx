@@ -15,6 +15,7 @@ import CookiePolicy from '../pages/CookiePolicy';
 import {TermsOfService} from '../pages/TermsOfService';
 import './App.css';
 import MentalWellnessResources from '../pages/WellnessResources';
+import AdminReportsPage from '../pages/AdminReportsPage';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -60,7 +61,7 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
-            
+            <Route path="/admin-reports" element={<AdminReportsPage />} />
             if (currentUser){currentUser && (
               <Route path="/chatbot" element={ <ChatWindow user={currentUser} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />} />
             )}

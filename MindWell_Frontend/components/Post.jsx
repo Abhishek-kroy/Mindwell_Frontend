@@ -1,8 +1,14 @@
 import React from 'react';
+import { useState } from "react";
+import ReportPostModal from "./ui/reportPostModal.jsx";
 import { 
   Heart, MessageCircle, Smile, Frown, Meh, Angry, 
-  Edit, X, Check, ThumbsUp, Bookmark, Share2, MoreHorizontal, Trash2, Send
+  Edit, X, Check, ThumbsUp, Bookmark, Share2, MoreHorizontal, Trash2, Send, AlertTriangle, ArrowLeft
 } from "lucide-react";
+
+import { doc, collection, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { db } from "../context/firebase/firebase"; // your firebase config
+import { getAuth } from "firebase/auth";
 
 const IncognitoGlasses = ({ className = "h-8 w-8" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -13,6 +19,14 @@ const IncognitoGlasses = ({ className = "h-8 w-8" }) => (
     <rect x="6" y="7" width="12" height="1.5" rx="0.5"/>
   </svg>
 );
+
+const reportReasons = [
+  "Spam",
+  "Hate Speech",
+  "Harassment",
+  "False Information",
+  "Other"
+];
 
 const Post = ({
   post,
@@ -41,18 +55,105 @@ const Post = ({
   saveEditedPost,
   deletePost,
   handleReaction,
-  setShowReactions
+  setShowReactions,
+  role
 }) => {
+  console.log("Current User Role:", role);
   const isLiked = likedPosts.includes(post.id);
   const isBookmarked = bookmarkedPosts.includes(post.id);
   const isEditing = editingPostId === post.id;
   const userReaction = getUserReaction(post.id);
-
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
   const handleCommentChange = (e) => {
     setNewComment(prev => ({
       ...prev,
       [post.id]: e.target.value
     }));
+  };
+
+  
+
+  // const reportPost = async (post) => {
+  //   const auth = getAuth();
+  //   const user = auth.currentUser;
+  //   if (!user) {
+  //     alert("You must be logged in to report a post.");
+  //     return;
+  //   }
+  
+  //   const reason = prompt("Please enter the reason for reporting this post:");
+  //   if (!reason) {
+  //     alert("Report reason is required.");
+  //     return;
+  //   }
+  
+  //   try {
+  //     const reportDocRef = doc(db, "posts", post.id, "reports", user.uid);
+  
+  //     const reportSnapshot = await getDoc(reportDocRef);
+  //     if (reportSnapshot.exists()) {
+  //       alert("You have already reported this post.");
+  //       return;
+  //     }
+  
+  //     // Save report with user ID as doc ID
+  //     await setDoc(reportDocRef, { reason, reportedAt: new Date() });
+  
+  //     // Increment report count on the post
+  //     const postRef = doc(db, "posts", post.id);
+  //     await updateDoc(postRef, {
+  //       reportCount: increment(1)
+  //     });
+  
+  //     console.log("Reported post:", post.id);
+  //     alert("Post reported successfully!");
+  //   } catch (error) {
+  //     console.error("Error reporting post:", error);
+  //     alert("Failed to report post. Please try again.");
+  //   }
+  // };
+
+  const reportPost = (post) => {
+    setSelectedPost(post);
+    setShowReportModal(true);
+  };
+  
+  // handle modal submission
+  const handleReportSubmit = async ({ postId, reason, additionalInfo }) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      alert("You must be logged in to report a post.");
+      return;
+    }
+  
+    try {
+      const reportDocRef = doc(db, "posts", postId, "reports", user.uid);
+      const reportSnapshot = await getDoc(reportDocRef);
+  
+      if (reportSnapshot.exists()) {
+        alert("You have already reported this post.");
+        return;
+      }
+  
+      await setDoc(reportDocRef, {
+        reason,
+        additionalInfo,
+        reportedAt: new Date(),
+      });
+  
+      const postRef = doc(db, "posts", postId);
+      await updateDoc(postRef, { reportCount: increment(1) });
+  
+      alert("Post reported successfully!");
+      setShowReportModal(false);
+      setSelectedPost(null);
+    } catch (error) {
+      console.error("Error reporting post:", error);
+      alert("Failed to report post. Please try again.");
+    }
   };
 
   const handleCommentKeyPress = (e) => {
@@ -88,20 +189,35 @@ const Post = ({
         </div>
         
         {/* Post Actions Menu */}
-        {currentUser && currentUser.id === post.userId && (
+        {currentUser && (
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => startEditingPost(post)}
-              className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => deletePost(post.id)}
-              className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {role === "admin" && currentUser.id === post.userId ? (
+              <>
+                <button onClick={() => startEditingPost(post)} className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400">
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button onClick={() => deletePost(post)} className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
+            ) : role === "admin" ? (
+              <button onClick={() => deletePost(post)} className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : currentUser.id === post.userId ? (
+              <>
+                <button onClick={() => startEditingPost(post)} className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400">
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button onClick={() => deletePost(post)} className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <button onClick={() => reportPost(post)} className="p-2 text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400">
+                <AlertTriangle className="h-4 w-4" />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -292,6 +408,13 @@ const Post = ({
           </div>
         </div>
       )}
+      {showReportModal && selectedPost && (
+      <ReportPostModal
+        post={selectedPost}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleReportSubmit} // parent writes to Firestore here
+      />
+    )}
     </div>
   );
 };

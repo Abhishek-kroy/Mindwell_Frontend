@@ -57,6 +57,7 @@ export default function CommunityPage() {
   const [showReactions, setShowReactions] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchPanelOpen, setSearchPanelOpen] = useState(true);
+  const [role, setRole] = useState("member");
 
   const reactionTypes = {
     like: { icon: <ThumbsUp className="h-4 w-4" />, color: "text-blue-500" },
@@ -182,6 +183,16 @@ export default function CommunityPage() {
     
     setFilteredPosts(filtered);
   }, [posts, activeTab, searchTerm, likedPosts, bookmarkedPosts, currentUser]);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (currentUser?.id) {
+        const userRole = await getUserRole(currentUser.id);
+        setRole(userRole);
+      }
+    };
+    fetchRole();
+  }, [currentUser]);
 
   const formatTimestamp = (date) => {
     if (!date?.toDate) return "now";
@@ -461,6 +472,25 @@ export default function CommunityPage() {
     setSearchPanelOpen(!searchPanelOpen);
   };
 
+  const getUserRole = async (userId) => {
+    try {
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+  
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        // ✅ If role exists return it, else return "member"
+        return data.role ? data.role : "member";
+      } else {
+        console.warn("No such user document!");
+        return "member";
+      }
+    } catch (error) {
+      console.error("Error fetching role:", error);
+      return "member";
+    }
+  };
+
   return (
     <div className={`min-h-screen pt-30 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
   <div className="flex h-[calc(100vh-6rem)] overflow-hidden">
@@ -562,6 +592,8 @@ export default function CommunityPage() {
                     deletePost={deletePost}
                     handleReaction={handleReaction}
                     setShowReactions={setShowReactions}
+                    //setEditedPostContent={setEditedPostContent}
+                    role={role}
                   />
                 ))
               )}
