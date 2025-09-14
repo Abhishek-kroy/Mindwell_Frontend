@@ -22,7 +22,33 @@ const AdminReportsSystem = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [userWarningCounts, setUserWarningCounts] = useState({});
+  const [userWarningCount, setUserWarningCount] = useState(0);
+
+
+  const fetchUserWarnings = async (userId) => {
+    if (!userId) return;
+    
+    try {
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const warnings = userSnap.data().warnings || 0;
+        setUserWarningCount(warnings);
+      }
+    } catch (err) {
+      console.error("Error fetching user warnings:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activePost && activePost.userId) {
+      fetchUserWarnings(activePost.userId);
+    } else {
+      setUserWarningCount(0);
+    }
+  }, [activePost]);
+
 
   // Authentication and role verification
   useEffect(() => {
@@ -192,13 +218,26 @@ const AdminReportsSystem = () => {
   };
 
   // Issue warning to user
-  const issueWarning = async (userId, userName) => {
-    if (!userId) {
-      alert("Cannot issue warning: User ID is missing");
+  const issueWarning = async (postId) => {
+    // First, get the post data to extract userId and username
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    
+    if (!postSnap.exists()) {
+      alert("Post not found");
       return;
     }
     
-    if (!confirm(`Issue warning to ${userName || "this user"}?`)) return;
+    const postData = postSnap.data();
+    const userId = postData.userId;
+    const userName = postData.username || "Unknown User";
+    
+    if (!userId) {
+      alert("Cannot issue warning: User ID is missing from post data");
+      return;
+    }
+    
+    if (!confirm(`Issue warning to ${userName} and delete this post?`)) return;
     
     setProcessing(true);
     try {
@@ -209,33 +248,30 @@ const AdminReportsSystem = () => {
         const currentWarnings = userSnap.data().warnings || 0;
         const newWarnings = currentWarnings + 1;
         
+        // Update user warnings
         await updateDoc(userRef, {
           warnings: newWarnings
         });
         
-        // Update local state
-        setFlaggedPosts(prev => prev.map(post => {
-          if (post.authorId === userId) {
-            return {
-              ...post,
-              warningCount: newWarnings
-            };
-          }
-          return post;
-        }));
+        // Call executePostDeletion instead of direct deletion (UPDATED)
+        await executePostDeletion(postId);
         
-        // Update active post if it's the same user
-        if (activePost && activePost.authorId === userId) {
-          setActivePost(prev => ({
-            ...prev,
-            warningCount: newWarnings
-          }));
+        // Update local state - remove the deleted post from flaggedPosts
+        setFlaggedPosts(prev => prev.filter(post => post.postId !== postId));
+        
+        // Clear active post if it's the same post
+        if (activePost && activePost.postId === postId) {
+          setActivePost(null);
         }
+        
+        // Update the user warning count state
+        setUserWarningCount(newWarnings);
         
         if (newWarnings >= 3) {
           await executeUserTermination(userId, userName);
+          alert(`Warning issued to ${userName}. User terminated due to reaching 3 warnings. Post deleted.`);
         } else {
-          alert(`Warning issued. Total warnings: ${newWarnings}`);
+          alert(`Warning issued to ${userName}. Total warnings: ${newWarnings}. Post deleted.`);
         }
       } else {
         alert("User not found");
@@ -381,13 +417,13 @@ const AdminReportsSystem = () => {
                   
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <User className="h-3 w-3" />
-                    <span>Author: {post.authorName || "Unknown"}</span>
+                    <span>Author: {post.username || "Unknown"}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-xs text-yellow-500">
+                  {/* <div className="flex items-center gap-2 text-xs text-yellow-500">
                     <AlertTriangle className="h-3 w-3" />
-                    <span>Warnings: {post.warningCount || 0}</span>
-                  </div>
+                    <span>Warnings: {userWarningCount}</span>
+                  </div> */}
                 </div>
                 
                 <div className="mt-4 flex items-center justify-between">
@@ -426,14 +462,14 @@ const AdminReportsSystem = () => {
                   </p>
                   <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
                     <User className="h-3 w-3" />
-                    <span>Author: {activePost.authorName}</span>
+                    <span>Author: {activePost.username}</span>
                   </div>
                   <div className="mt-1 text-xs text-yellow-500 flex items-center gap-2">
                     <AlertTriangle className="h-3 w-3" />
-                    <span>Warnings: {activePost.warningCount || 0}</span>
+                    <span>Warnings: {userWarningCount}</span>
                   </div>
                   <div className="mt-1 text-xs text-blue-500 flex items-center gap-2">
-                    <span>User ID: {activePost.authorId}</span>
+                    <span>User ID: {activePost.userId}</span>
                   </div>
                 </div>
 
@@ -494,7 +530,7 @@ const AdminReportsSystem = () => {
                   
                   <button
                     className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white px-4 py-2 rounded font-mono text-sm transition-colors"
-                    onClick={() => issueWarning(activePost.authorId, activePost.authorName)}
+                    onClick={() => issueWarning(activePost.id)}
                     disabled={processing}
                   >
                     <AlertTriangle className="h-4 w-4" />
