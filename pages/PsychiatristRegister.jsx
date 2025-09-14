@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../src/utils/api';
 
 const PsychiatristRegister = () => {
   const [name, setName] = useState('');
@@ -15,7 +16,7 @@ const PsychiatristRegister = () => {
     setLoading(true);
     setMessage('');
     try {
-      const res = await fetch('https://mindwell-backend-ngfl.onrender.com/api/psychiatrist/register', {
+      const res = await fetch(`${API_BASE_URL}/api/psychiatrist/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
