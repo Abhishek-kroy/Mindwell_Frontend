@@ -108,7 +108,7 @@ const AddRequest = () => {
     setSuccess("");
 
     try {
-      const res = await fetch("http://localhost:4000/api/request/create", {
+      const res = await fetch("https://mindwell-backend-ngfl.onrender.com/api/request/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

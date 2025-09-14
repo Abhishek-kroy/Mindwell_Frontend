@@ -15,7 +15,7 @@ const PsychiatristRegister = () => {
     setLoading(true);
     setMessage('');
     try {
-      const res = await fetch('http://localhost:4000/api/psychiatrist/register', {
+      const res = await fetch('https://mindwell-backend-ngfl.onrender.com/api/psychiatrist/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

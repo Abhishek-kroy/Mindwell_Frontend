@@ -3,6 +3,7 @@ import { TrendingUp, Heart, AlertCircle, Battery, ChevronRight, X } from 'lucide
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { db, auth } from "../context/firebase/firebase";
 import { useNavigate } from 'react-router-dom';
+import { Zap } from 'lucide-react';
 
 const getDateStr = (date) => date.toLocaleDateString('en-CA'); // YYYY-MM-DD
 

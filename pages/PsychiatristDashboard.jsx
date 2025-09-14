@@ -134,8 +134,8 @@ const PsychiatristDashboard = () => {
     setLoading(true);
     try {
       const [pendingRes, acceptedRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/request/college/${encodeURIComponent(college)}?status=pending`),
-        fetch(`http://localhost:4000/api/request/college/${encodeURIComponent(college)}?status=accepted`),
+        fetch(`https://mindwell-backend-ngfl.onrender.com/api/request/college/${encodeURIComponent(college)}?status=pending`),
+        fetch(`https://mindwell-backend-ngfl.onrender.com/api/request/college/${encodeURIComponent(college)}?status=accepted`),
       ]);
 
       const [pendingData, acceptedData] = await Promise.all([pendingRes.json(), acceptedRes.json()]);
@@ -174,7 +174,7 @@ const PsychiatristDashboard = () => {
     }
     if (!psychiatristId) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/request/respond-atomic/${requestId}`, {
+      const res = await fetch(`https://mindwell-backend-ngfl.onrender.com/api/request/respond-atomic/${requestId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ psychiatristId, action: action === 'decline' ? 'reject' : action }),

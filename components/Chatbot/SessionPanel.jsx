@@ -31,7 +31,7 @@ const SessionsPanel = ({ onSelectSession, darkMode }) => {
 
             const idToken = await currentUser.getIdToken();
 
-            const response = await fetch(`http://localhost:4000/api/sessions/${sessionRef}`, {
+            const response = await fetch(`https://mindwell-backend-ngfl.onrender.com/api/sessions/${sessionRef}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${idToken}`

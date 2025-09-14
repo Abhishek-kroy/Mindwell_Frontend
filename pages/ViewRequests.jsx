@@ -28,7 +28,7 @@ const ViewRequests = () => {
     if (!college) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/request/college/${encodeURIComponent(college)}?status=${encodeURIComponent(status)}`, {
+      const res = await fetch(`https://mindwell-backend-ngfl.onrender.com/api/request/college/${encodeURIComponent(college)}?status=${encodeURIComponent(status)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
