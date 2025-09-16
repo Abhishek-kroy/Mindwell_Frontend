@@ -78,10 +78,6 @@ MindWell is a digital companion for mental health, offering:
 
 ## 🖼️ Visual Overview
 
-![MindWell Home Page](public/homebelow16-3.png)
-
-![Chatbot Interface](public/chatbotbg.png)
-
 ---
 
 ## 📦 Installation & Running Locally
