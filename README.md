@@ -43,7 +43,9 @@ MindWell is a digital companion for mental health, offering:
 - <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 46 34 PM" src="https://github.com/user-attachments/assets/450893ef-a431-4fad-84a2-0f042689e315" />
 
 - **Community (`/community`)**: Moderated social space for anonymous/open sharing. Solves isolation and connection needs. Use it to find support and share experiences safely.
-- 
+- <img width="1440" height="777" alt="image" src="https://github.com/user-attachments/assets/4ba0a175-24b1-434e-ae46-284bb0276544" />
+
+  
 - **Resources (`/resources`, `/wellnessresources`)**: Personalized mental health tools and articles. Solves education and coping strategy needs. Use it for evidence-based self-help resources.
 - <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 44 27 PM" src="https://github.com/user-attachments/assets/588f80a1-1a58-47ea-8afc-6a61c3d8e586" />
 - <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 45 12 PM" src="https://github.com/user-attachments/assets/bba1f4c8-64f1-4278-9101-4a0ad9695028" />
