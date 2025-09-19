@@ -76,7 +76,8 @@ MindWell is a digital companion for mental health, offering:
 - **ViewRequests (`/view-requests`)**: Admin review of consultation requests. Solves request triage and assignment.
 - **AdminReportsPage (`/admin-reports`)**: Platform moderation and reporting tools. Solves community safety and compliance.
 - <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/847d735a-3889-44f1-be7a-e616fe7933c4" />
-- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/1f98cd14-7537-4709-baa1-3e88580b5f76" />
+- <img width="700" height="383" alt="Screenshot 2025-09-20 at 12 13 51 AM" src="https://github.com/user-attachments/assets/7f3fd6ac-1302-421f-948a-7a1c5f2d899c" />
+
 
 
 
