@@ -1,7 +1,7 @@
 # 🧠 MindWell – Because Your Mind Deserves Kindness
 
 Welcome to **MindWell**, a comprehensive mental wellness platform designed to provide compassionate, evidence-based support through modern technology. This README guides you through the project structure, features, and technical details to help you understand the full scope of the application without needing to open individual files.
-<img width="1426" height="777" alt="Screenshot 2025-09-19 at 11 38 31 PM" src="https://github.com/user-attachments/assets/e3656a36-cd6e-49c6-a96a-25603c53590f" />
+<img width="700" height="383" alt="Screenshot 2025-09-19 at 11 38 31 PM" src="https://github.com/user-attachments/assets/e3656a36-cd6e-49c6-a96a-25603c53590f" />
 
 ---
 
@@ -62,11 +62,19 @@ MindWell is a digital companion for mental health, offering:
 
 ### Professional & Administrative Pages
 - **PsychiatristDashboard (`/psychiatrist`)**: Protected dashboard for managing consultations. Solves professional-patient interaction needs.
+- <img width="700" height="383" alt="Screenshot 2025-09-20 at 12 00 43 AM" src="https://github.com/user-attachments/assets/010426bb-36c8-4b04-bc31-4ef86ed5936d" />
+
 - **PsychiatristRegister (`/psychiatrist-register`)**: Registration for mental health professionals. Solves credential verification.
 - **AddRequest (`/add-request`)**: Students request professional consultations. Solves access to professional help.
 - **MyChats (`/my-chats`)**: User chat history and session management. Solves continuity of AI conversations.
+- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/967c3150-3b9b-4e6d-adbc-40c0dde982d0" />
+
 - **ViewRequests (`/view-requests`)**: Admin review of consultation requests. Solves request triage and assignment.
 - **AdminReportsPage (`/admin-reports`)**: Platform moderation and reporting tools. Solves community safety and compliance.
+- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/847d735a-3889-44f1-be7a-e616fe7933c4" />
+- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/1f98cd14-7537-4709-baa1-3e88580b5f76" />
+
+
 
 ### Legal & Policy Pages
 - **TermsOfService, PrivacyPolicy, CookiePolicy**: Legal compliance and user rights information. Solves transparency and legal requirements.
