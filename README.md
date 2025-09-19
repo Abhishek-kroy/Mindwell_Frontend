@@ -43,7 +43,7 @@ MindWell is a digital companion for mental health, offering:
 - <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 46 34 PM" src="https://github.com/user-attachments/assets/450893ef-a431-4fad-84a2-0f042689e315" />
 
 - **Community (`/community`)**: Moderated social space for anonymous/open sharing. Solves isolation and connection needs. Use it to find support and share experiences safely.
-- <img width="1440" height="777" alt="image" src="https://github.com/user-attachments/assets/4ba0a175-24b1-434e-ae46-284bb0276544" />
+- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/4ba0a175-24b1-434e-ae46-284bb0276544" />
 
   
 - **Resources (`/resources`, `/wellnessresources`)**: Personalized mental health tools and articles. Solves education and coping strategy needs. Use it for evidence-based self-help resources.
@@ -123,7 +123,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to explore the app.
+Open [http://localhost:5173](http://localhost:5173) in your browser to explore the app.
 
 ---
 
