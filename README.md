@@ -14,6 +14,7 @@ MindWell is a digital companion for mental health, offering:
 - **Community Network:** A moderated, supportive social space for sharing and connection.
 - **Personalized Resources:** Evidence-based tools, articles, and videos tailored to user moods.
 - **Professional Help:** Easy connection to psychiatrists and mental health professionals.
+<img width="700" height="383" alt="Screenshot 2025-09-19 at 11 48 37 PM" src="https://github.com/user-attachments/assets/2d881b73-09ed-4fdd-bca9-6994c38e4bef" />
 
 ---
 
@@ -32,14 +33,32 @@ MindWell is a digital companion for mental health, offering:
 ### Core User Pages
 - **Home (`/`)**: Entry point with mood assessment, quick access to AI chat, community, and professional help. Solves initial user engagement and navigation. Use it to start your mental wellness journey.
 - **Test (`/test`)**: Interactive mood questionnaire with AI interpretation. Solves self-assessment needs. Use it to gain insights into your current emotional state.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 51 13 PM" src="https://github.com/user-attachments/assets/a8b23ced-77c9-4ca0-8bdc-a05749811428" />
+
+- <img width="700" height="383" alt="image" src="https://github.com/user-attachments/assets/5831f21a-dbbb-45ac-b7ca-aad7e0907ef5" />
+
 - **Chatbot (`/chatbot`)**: 24/7 AI conversational support with encrypted sessions. Solves immediate emotional support needs. Use it for confidential, judgment-free conversations.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 46 17 PM" src="https://github.com/user-attachments/assets/debccf8c-1d2d-4d1e-9fee-3409a33ce3e9" />
+
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 46 34 PM" src="https://github.com/user-attachments/assets/450893ef-a431-4fad-84a2-0f042689e315" />
+
 - **Community (`/community`)**: Moderated social space for anonymous/open sharing. Solves isolation and connection needs. Use it to find support and share experiences safely.
+- 
 - **Resources (`/resources`, `/wellnessresources`)**: Personalized mental health tools and articles. Solves education and coping strategy needs. Use it for evidence-based self-help resources.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 44 27 PM" src="https://github.com/user-attachments/assets/588f80a1-1a58-47ea-8afc-6a61c3d8e586" />
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 45 12 PM" src="https://github.com/user-attachments/assets/bba1f4c8-64f1-4278-9101-4a0ad9695028" />
+
 
 ### Authentication & Role-Based Pages
 - **Auth (`/auth`)**: Student user login/registration. Solves secure access for students.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 56 11 PM" src="https://github.com/user-attachments/assets/e09afb4b-3bc8-4d10-94b2-e44a0d688994" />
+
 - **PsychiatristAuth (`/psychiatrist-auth`)**: Professional healthcare provider login. Solves secure access for mental health professionals.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 56 33 PM" src="https://github.com/user-attachments/assets/edf8b5f9-ef9a-4b6b-b7eb-bbfba22e6b09" />
+
 - **AdminAuth (`/admin-auth`)**: Administrative access for platform management. Solves oversight and moderation needs.
+- <img width="700" height="383" alt="Screenshot 2025-09-19 at 11 44 13 PM" src="https://github.com/user-attachments/assets/19345063-ac7a-4bb5-bfcb-5628daaefbea" />
+
 
 ### Professional & Administrative Pages
 - **PsychiatristDashboard (`/psychiatrist`)**: Protected dashboard for managing consultations. Solves professional-patient interaction needs.
