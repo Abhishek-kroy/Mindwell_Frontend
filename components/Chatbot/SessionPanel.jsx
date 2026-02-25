@@ -1,26 +1,14 @@
 import { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
 import SessionList from './SessionList';
 import useSessions from '../hooks/useSessions';
 import { API_BASE_URL } from '../../src/utils/api';
+import { useAuth } from '../../src/hooks/useAuth';
 
 const SessionsPanel = ({ onSelectSession, darkMode }) => {
-    const [idToken, setIdToken] = useState(null);
+    const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
 
-    const { sessions, isLoading, refresh, setSessions } = useSessions(idToken);
-
-    useEffect(() => {
-        const fetchToken = async () => {
-            const auth = getAuth();
-            const user = auth.currentUser;
-            if (user) {
-                const token = await user.getIdToken();
-                setIdToken(token);
-            }
-        };
-        fetchToken();
-    }, []);
+    const { sessions, isLoading, refresh, setSessions } = useSessions(user?.token);
 
     const handleDeleteSession = async (sessionRef) => {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;

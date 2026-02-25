@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 
 import { deleteDoc } from 'firebase/firestore';
 
-import {auth, db} from '../context/firebase/firebase';
+import { auth, db } from '../context/firebase/firebase';
 
 import { resources } from '../src/resources.js';
 
@@ -45,13 +45,21 @@ const MentalWellnessResources = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [moodHistory, setMoodHistory] = useState([]);
-  
+  const [dynamicResources, setDynamicResources] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newResource, setNewResource] = useState({
+    title: '',
+    type: 'article',
+    mood: 'happy',
+    url: '',
+    description: '',
+    whyHelpful: '',
+    duration: '5-10 min',
+    tags: []
+  });
+
   const audioRef = useRef(null);
   const notificationRef = useRef(null);
-
-  
- 
-  
 
   // Sample data for progress charts
   const weeklyProgressData = [
@@ -75,59 +83,66 @@ const MentalWellnessResources = () => {
     { id: 'crisis', name: 'Crisis', icon: '🚨', color: 'bg-red-600' }
   ];
 
+  const normalizedResources = useMemo(() => {
+    const moodKeys = selectedMood === 'all'
+      ? Object.keys(resources)
+      : selectedMood === 'bookmarked'
+        ? Object.keys(resources)
+        : [selectedMood];
 
- const normalizedResources = useMemo(() => {
-  const moodKeys = selectedMood === 'all'
-    ? Object.keys(resources)
-    : selectedMood === 'bookmarked'
-    ? Object.keys(resources)
-    : [selectedMood];
+    const staticRes = moodKeys.flatMap((key) =>
+      (resources[key] || []).map((res, index) => ({
+        ...res,
+        id: `${key}-${index}`,
+        mood: key,
+        duration: res.duration || '5-10 min',
+        type: res.type?.toLowerCase() || 'article',
+      }))
+    );
 
-  const all = moodKeys.flatMap((key) =>
-    (resources[key] || []).map((res, index) => ({
-      ...res,
-      id: `${key}-${index}`, // or use a UUID if needed
-      mood: key,
-      duration: res.duration || '5-10 min', // fallback duration if missing
-      type: res.type?.toLowerCase() || 'article',
-    }))
-  );
+    const merged = [...staticRes, ...dynamicResources].filter(res => {
+      if (selectedMood === 'all') return true;
+      if (selectedMood === 'bookmarked') return bookmarkedResources.includes(res.id);
+      return res.mood === selectedMood;
+    });
 
-  if (selectedMood === 'bookmarked') {
-    return all.filter(res => bookmarkedResources.includes(res.id));
-  }
+    return merged;
+  }, [resources, selectedMood, bookmarkedResources, dynamicResources]);
 
-  return all;
-}, [resources, selectedMood, bookmarkedResources]);
+  const filteredResources = useMemo(() => {
+    return normalizedResources.filter((resource) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        resource.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-const filteredResources = useMemo(() => {
-  return normalizedResources.filter((resource) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType =
+        selectedFilters.type === 'all' ||
+        resource.type === selectedFilters.type;
 
-    const matchesType =
-      selectedFilters.type === 'all' ||
-      resource.type === selectedFilters.type;
+      const matchesDuration =
+        selectedFilters.duration === 'all' ||
+        (resource.duration &&
+          (
+            (selectedFilters.duration === '<5 min' && resource.duration.includes('<5')) ||
+            (selectedFilters.duration === '5-10 min' && resource.duration.includes('5-10')) ||
+            (selectedFilters.duration === '10-20 min' && resource.duration.includes('10-20')) ||
+            (selectedFilters.duration === '20+ min' && resource.duration.includes('20'))
+          ));
 
-    const matchesDuration =
-      selectedFilters.duration === 'all' ||
-      (resource.duration &&
-        (
-          (selectedFilters.duration === '<5 min' && resource.duration.includes('<5')) ||
-          (selectedFilters.duration === '5-10 min' && resource.duration.includes('5-10')) ||
-          (selectedFilters.duration === '10-20 min' && resource.duration.includes('10-20')) ||
-          (selectedFilters.duration === '20+ min' && resource.duration.includes('20'))
-        ));
-
-    return matchesSearch && matchesType && matchesDuration;
-  });
-}, [normalizedResources, searchTerm, selectedFilters]);
-
+      return matchesSearch && matchesType && matchesDuration;
+    });
+  }, [normalizedResources, searchTerm, selectedFilters]);
 
   // Flatten resources for filtering
-  const allResources = Object.values(resources).flat();
+  const allResources = useMemo(() => {
+    const staticAll = Object.values(resources).flat().map((res, idx) => ({
+      ...res,
+      id: res.id || `static-${idx}`,
+      type: res.type?.toLowerCase() || 'article'
+    }));
+    return [...staticAll, ...dynamicResources];
+  }, [dynamicResources]);
 
   // Auth state listener
   useEffect(() => {
@@ -202,6 +217,11 @@ const filteredResources = useMemo(() => {
       // Calculate streak
       calculateStreak(moodHistorySnap.docs.map(doc => doc.data()));
 
+      // Load dynamic resources
+      const communityRef = collection(db, 'community_resources');
+      const communitySnap = await getDocs(query(communityRef));
+      setDynamicResources(communitySnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
       setLoading(false);
     } catch (error) {
       console.error("Error loading user data:", error);
@@ -249,15 +269,11 @@ const filteredResources = useMemo(() => {
         const plannerRef = collection(db, 'users', user.uid, 'planner');
         const plannerQuery = query(plannerRef);
         const plannerSnap = await getDocs(plannerQuery);
-        
+
         const batch = [];
-        
-
-plannerSnap.forEach(doc => {
-  batch.push(deleteDoc(doc.ref));
-});
-
-        
+        plannerSnap.forEach(doc => {
+          batch.push(deleteDoc(doc.ref));
+        });
         await Promise.all(batch);
 
         // Add new planner items
@@ -353,16 +369,16 @@ plannerSnap.forEach(doc => {
 
     // Sort by date ascending
     const sorted = [...moodData].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
+
     let streak = 1;
     let prevDate = new Date(sorted[sorted.length - 1].date);
-    
+
     // Check consecutive days from most recent
     for (let i = sorted.length - 2; i >= 0; i--) {
       const currentDate = new Date(sorted[i].date);
       const diffTime = prevDate - currentDate;
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
-      
+
       if (diffDays === 1) {
         streak++;
         prevDate = currentDate;
@@ -370,7 +386,7 @@ plannerSnap.forEach(doc => {
         break;
       }
     }
-    
+
     setStreakCount(streak);
   };
 
@@ -451,26 +467,26 @@ plannerSnap.forEach(doc => {
 
   // Resource management functions
   const toggleBookmark = async (resourceId) => {
-    const newBookmarks = bookmarkedResources.includes(resourceId) 
+    const newBookmarks = bookmarkedResources.includes(resourceId)
       ? bookmarkedResources.filter(id => id !== resourceId)
       : [...bookmarkedResources, resourceId];
-    
+
     setBookmarkedResources(newBookmarks);
-    
+
     toast.success(
-      bookmarkedResources.includes(resourceId) 
-        ? 'Removed from bookmarks' 
+      bookmarkedResources.includes(resourceId)
+        ? 'Removed from bookmarks'
         : 'Added to bookmarks'
     );
   };
 
   const markCompleted = async (resourceId) => {
-    const newCompleted = completedResources.includes(resourceId) 
+    const newCompleted = completedResources.includes(resourceId)
       ? completedResources.filter(id => id !== resourceId)
       : [...completedResources, resourceId];
-    
+
     setCompletedResources(newCompleted);
-    
+
     if (!completedResources.includes(resourceId)) {
       toast.success('Marked as completed!', {
         icon: <CheckCircle className="text-green-500" />
@@ -495,6 +511,26 @@ plannerSnap.forEach(doc => {
     toast.success('Removed from planner');
   };
 
+  const handleAddResource = async (e) => {
+    e.preventDefault();
+    if (!newResource.title || !newResource.url) return;
+    try {
+      await addDoc(collection(db, "community_resources"), {
+        ...newResource,
+        authorId: user.uid,
+        authorName: user.name || 'Professional',
+        createdAt: new Date().toISOString(),
+        tags: newResource.title.split(' ').slice(0, 3)
+      });
+      setShowAddModal(false);
+      setNewResource({ title: '', type: 'article', mood: 'happy', url: '', description: '', whyHelpful: '', duration: '5-10 min', tags: [] });
+      toast.success('Resource added successfully!');
+    } catch (error) {
+      console.error("Error adding resource:", error);
+      toast.error('Failed to add resource');
+    }
+  };
+
   const saveJournalEntry = async () => {
     if (!user || !currentResourceId || !currentJournalEntry.trim()) return;
 
@@ -505,9 +541,9 @@ plannerSnap.forEach(doc => {
         date: new Date().toISOString(),
         text: currentJournalEntry
       };
-      
+
       await addDoc(journalRef, newEntry);
-      
+
       // Update local state
       setJournalEntries(prev => ({
         ...prev,
@@ -535,7 +571,7 @@ plannerSnap.forEach(doc => {
 
   // UI helper functions
   const getTypeIcon = (type) => {
-    switch(type.toLowerCase()) {
+    switch (type.toLowerCase()) {
       case 'video': return <Play className="w-4 h-4" />;
       case 'audio': return <Volume2 className="w-4 h-4" />;
       case 'exercise': return <Book className="w-4 h-4" />;
@@ -546,7 +582,8 @@ plannerSnap.forEach(doc => {
   };
 
   const getActionButton = (resource) => {
-    if (resource.type.toLowerCase() === 'audio') {
+    const type = resource.type?.toLowerCase();
+    if (type === 'audio') {
       return (
         <button
           onClick={() => playAudio(resource)}
@@ -556,7 +593,7 @@ plannerSnap.forEach(doc => {
           <span>Play</span>
         </button>
       );
-    } else if (resource.type.toLowerCase() === 'video') {
+    } else if (type === 'video') {
       return (
         <a
           href={resource.url}
@@ -567,16 +604,6 @@ plannerSnap.forEach(doc => {
           <Play className="w-4 h-4" />
           <span>Watch</span>
         </a>
-      );
-    } else if (resource.type.toLowerCase() === 'exercise') {
-      return (
-        <button
-          onClick={() => window.open(resource.url, '_blank')}
-          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download</span>
-        </button>
       );
     } else {
       return (
@@ -677,7 +704,7 @@ plannerSnap.forEach(doc => {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} w-12`}>{formatTime(currentTime)}</span>
               <div className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 cursor-pointer`} onClick={handleSeek}>
@@ -703,7 +730,7 @@ plannerSnap.forEach(doc => {
               </div>
             </div>
           </div>
-          
+
           <audio
             ref={audioRef}
             src={currentlyPlaying.url}
@@ -719,15 +746,15 @@ plannerSnap.forEach(doc => {
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className={`fixed inset-0 z-50 ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}>
-          <button 
+          <button
             onClick={() => setShowMobileMenu(false)}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           <div className="flex flex-col space-y-6 mt-12">
-            <button 
+            <button
               onClick={() => {
                 setShowPlanner(true);
                 setShowMobileMenu(false);
@@ -737,8 +764,8 @@ plannerSnap.forEach(doc => {
               <Calendar className="w-5 h-5" />
               <span>My Planner</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setSelectedMood('all');
                 setShowMobileMenu(false);
@@ -748,8 +775,8 @@ plannerSnap.forEach(doc => {
               <Book className="w-5 h-5" />
               <span>All Resources</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setSelectedMood('bookmarked');
                 setShowMobileMenu(false);
@@ -759,26 +786,26 @@ plannerSnap.forEach(doc => {
               <Heart className="w-5 h-5" />
               <span>Saved Resources</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={toggleDarkMode}
               className="flex items-center space-x-3 text-lg"
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
-            
+
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <Bell className="w-5 h-5" />
                 <div className="flex-1">
-                  <label htmlFor="notification-time" className="block text-sm font-medium mb-1">
+                  <label htmlFor="notification-time-mobile" className="block text-sm font-medium mb-1">
                     Daily Reminder
                   </label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="time"
-                      id="notification-time"
+                      id="notification-time-mobile"
                       value={notificationTime}
                       onChange={(e) => setNotificationTime(e.target.value)}
                       className="px-2 py-1 border rounded"
@@ -802,35 +829,35 @@ plannerSnap.forEach(doc => {
       {showJournalModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className={`rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 text-gray-800 dark:text-white">
               <h3 className="text-xl font-semibold">Journal Entry</h3>
-              <button 
+              <button
                 onClick={() => setShowJournalModal(false)}
                 className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="mb-4">
-              <h4 className="font-medium mb-2">
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
                 {allResources.find(r => r.id === currentResourceId)?.title}
               </h4>
               <textarea
                 value={currentJournalEntry}
                 onChange={(e) => setCurrentJournalEntry(e.target.value)}
                 placeholder="Write your thoughts, reflections, or notes here..."
-                className={`w-full h-40 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                className={`w-full h-40 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
               />
             </div>
-            
+
             <div className="mb-4">
-              <h4 className="font-medium mb-2">Previous Entries</h4>
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">Previous Entries</h4>
               {journalEntries[currentResourceId]?.length > 0 ? (
                 <div className="space-y-3">
                   {journalEntries[currentResourceId].map((entry, index) => (
                     <div key={index} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                      <p className="text-sm">{entry.text}</p>
+                      <p className="text-sm text-gray-800 dark:text-gray-200">{entry.text}</p>
                       <p className="text-xs mt-1 text-gray-500">
                         {new Date(entry.date).toLocaleString()}
                       </p>
@@ -841,7 +868,7 @@ plannerSnap.forEach(doc => {
                 <p className="text-sm text-gray-500">No previous entries</p>
               )}
             </div>
-            
+
             <button
               onClick={saveJournalEntry}
               disabled={!currentJournalEntry.trim()}
@@ -853,32 +880,120 @@ plannerSnap.forEach(doc => {
         </div>
       )}
 
+      {/* Add Resource Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4 text-gray-800">
+          <div className={`rounded-[2rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} p-8 md:p-10 border border-white/20`}>
+            <div className="flex justify-between items-center mb-8 text-blue-600">
+              <h3 className="text-2xl font-black tracking-tight">Add New Resource</h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddResource} className="space-y-6">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={newResource.title}
+                  onChange={(e) => setNewResource({ ...newResource, title: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="The Power of Mindfulness"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Type</label>
+                  <select
+                    value={newResource.type}
+                    onChange={(e) => setNewResource({ ...newResource, type: e.target.value })}
+                    className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none`}
+                  >
+                    <option value="article">Article</option>
+                    <option value="video">Video</option>
+                    <option value="audio">Audio</option>
+                    <option value="exercise">Exercise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Mood</label>
+                  <select
+                    value={newResource.mood}
+                    onChange={(e) => setNewResource({ ...newResource, mood: e.target.value })}
+                    className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none`}
+                  >
+                    {moods.filter(m => m.id !== 'all').map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">URL</label>
+                <input
+                  type="url"
+                  required
+                  value={newResource.url}
+                  onChange={(e) => setNewResource({ ...newResource, url: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="https://example.com/resource"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
+                <textarea
+                  value={newResource.description}
+                  onChange={(e) => setNewResource({ ...newResource, description: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none min-h-[100px] resize-none`}
+                  placeholder="Briefly describe the resource..."
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-[#2D3142] text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-[#4A4E69] shadow-xl transition-all"
+              >
+                Publish Resource
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <header className="flex justify-between items-center mb-8">
-          <button 
+          <button
             onClick={() => setShowMobileMenu(true)}
             className="md:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <Menu className="w-6 h-6" />
           </button>
-          
+
           <div className="text-center md:text-left">
             <h1 className={`text-3xl md:text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-2`}>Mental Wellness Resources</h1>
             <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Tools for your mental health journey
             </p>
           </div>
-          
+
           <div className="hidden md:flex items-center space-x-4">
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            
+
             <div className="flex items-center space-x-2">
               <Bell className="w-5 h-5" />
               <div className="flex items-center">
@@ -897,13 +1012,13 @@ plannerSnap.forEach(doc => {
                 </button>
               </div>
             </div>
-            
+
             {user ? (
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
                 <User className="w-5 h-5" />
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => signInWithGoogle()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
@@ -921,8 +1036,8 @@ plannerSnap.forEach(doc => {
               <button
                 key={mood.id}
                 onClick={() => setSelectedMood(mood.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl min-w-[100px] transition-all ${selectedMood === mood.id ? 
-                  `${mood.color} text-white shadow-lg transform scale-105` : 
+                className={`flex flex-col items-center justify-center p-4 rounded-xl min-w-[100px] transition-all ${selectedMood === mood.id ?
+                  `${mood.color} text-white shadow-lg transform scale-105` :
                   darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-100'} shadow`}
               >
                 <span className="text-2xl mb-1">{mood.icon}</span>
@@ -945,12 +1060,12 @@ plannerSnap.forEach(doc => {
                 className={`w-full pl-10 pr-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
               />
             </div>
-            
+
             <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <select
                   value={selectedFilters.type}
-                  onChange={(e) => setSelectedFilters({...selectedFilters, type: e.target.value})}
+                  onChange={(e) => setSelectedFilters({ ...selectedFilters, type: e.target.value })}
                   className={`appearance-none pl-3 pr-8 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="all">All Types</option>
@@ -962,11 +1077,11 @@ plannerSnap.forEach(doc => {
                 </select>
                 <Filter className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} pointer-events-none`} />
               </div>
-              
+
               <div className="relative">
                 <select
                   value={selectedFilters.duration}
-                  onChange={(e) => setSelectedFilters({...selectedFilters, duration: e.target.value})}
+                  onChange={(e) => setSelectedFilters({ ...selectedFilters, duration: e.target.value })}
                   className={`appearance-none pl-3 pr-8 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="all">Any Duration</option>
@@ -977,7 +1092,7 @@ plannerSnap.forEach(doc => {
                 </select>
                 <Clock className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} pointer-events-none`} />
               </div>
-              
+
               <button
                 onClick={() => setShowPlanner(!showPlanner)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
@@ -985,6 +1100,16 @@ plannerSnap.forEach(doc => {
                 <Calendar className="w-5 h-5" />
                 <span>{showPlanner ? 'Hide Planner' : 'Show Planner'}</span>
               </button>
+
+              {['doctor', 'psychiatrist', 'company_doctor', 'admin'].includes(user?.role) && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-[#2D3142] text-white rounded-lg hover:bg-[#4A4E69] shadow-md transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add Resource</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1001,12 +1126,12 @@ plannerSnap.forEach(doc => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             {plannedPractices.length > 0 ? (
               <div className="space-y-4">
                 {plannedPractices.map((practice) => (
-                  <div 
-                    key={practice.id} 
+                  <div
+                    key={practice.id}
                     className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow`}
                   >
                     <div className="flex justify-between items-start">
@@ -1022,7 +1147,7 @@ plannerSnap.forEach(doc => {
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex space-x-2">
                         {getActionButton(practice)}
                         <button
@@ -1057,9 +1182,9 @@ plannerSnap.forEach(doc => {
           <div className="mb-8">
             <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Featured Resources</h2>
             <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <Carousel 
-                showArrows={true} 
-                showStatus={false} 
+              <Carousel
+                showArrows={true}
+                showStatus={false}
                 showThumbs={false}
                 infiniteLoop={true}
                 autoPlay={true}
@@ -1126,20 +1251,20 @@ plannerSnap.forEach(doc => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              {selectedMood === 'all' ? 'All Resources' : 
-               selectedMood === 'bookmarked' ? 'Saved Resources' : 
-               `Resources for ${moods.find(m => m.id === selectedMood)?.name}`}
+              {selectedMood === 'all' ? 'All Resources' :
+                selectedMood === 'bookmarked' ? 'Saved Resources' :
+                  `Resources for ${moods.find(m => m.id === selectedMood)?.name}`}
             </h2>
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Showing {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
             </p>
           </div>
-          
+
           {filteredResources.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredResources.map((resource) => (
-                <div 
-                  key={resource.id} 
+                <div
+                  key={resource.id}
                   className={`rounded-xl border overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow hover:shadow-lg transition-shadow`}
                 >
                   <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -1161,18 +1286,18 @@ plannerSnap.forEach(doc => {
                       </div>
                     </div>
                     <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.description}</p>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {resource.tags.map((tag) => (
-                        <span 
-                          key={tag} 
+                      {(resource.tags || []).map((tag) => (
+                        <span
+                          key={tag}
                           className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
                         >
                           {tag}
                         </span>
                       ))}
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
                         {getTypeIcon(resource.type)}
@@ -1194,11 +1319,11 @@ plannerSnap.forEach(doc => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="p-4">
                     <div className="mb-3">
                       <h4 className={`text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>WHY THIS HELPS</h4>
-                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.whyHelpful}</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.whyHelpful || 'Provides tools for mental wellbeing.'}</p>
                     </div>
                     <div className="flex justify-between items-center">
                       {getActionButton(resource)}

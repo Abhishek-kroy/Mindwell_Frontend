@@ -22,7 +22,7 @@ const QuestionCard = ({
     };
 
     return (
-        <div className="w-full h-full flex flex-col justify-center items-center px-6 relative">
+        <div className="w-full min-h-[60vh] flex flex-col justify-center items-center px-6 relative">
             <div className="w-full max-w-4xl">
                 <div className="mb-12 flex items-center justify-between">
                     <motion.button

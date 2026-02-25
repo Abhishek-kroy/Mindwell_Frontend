@@ -62,7 +62,18 @@ export const useAssessment = () => {
             setResult(state.result);
             setStage(state.stage || 0);
         }
-    }, []);
+    }, [setSelectedMood, setQuestions, setCurrentQuestionIndex, setAnswers, setResult, setStage]);
+
+    // Handle logout-driven reset
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (!user) {
+                // Clear state if logged out
+                reset();
+            }
+        });
+        return () => unsubscribe();
+    }, [auth]);
 
     // Save persistence
     useEffect(() => {
@@ -83,7 +94,7 @@ export const useAssessment = () => {
         }, 800);
     };
 
-    const saveResults = async (assessmentResult) => {
+    const saveResults = async (assessmentResult, analysis = null) => {
         try {
             const user = auth.currentUser;
             if (!user) return;
@@ -96,6 +107,7 @@ export const useAssessment = () => {
                 moodType: selectedMood,
                 score: assessmentResult?.score || 0,
                 level: assessmentResult?.level || "Happy",
+                analysis,
                 answers: answers.map((value, index) => ({
                     question: questions[index]?.text || "",
                     value

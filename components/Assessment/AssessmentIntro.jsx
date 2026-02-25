@@ -12,7 +12,7 @@ const moodOptions = [
 
 const AssessmentIntro = ({ onSelectMood, onBack }) => {
     return (
-        <div className="w-full h-full flex flex-col justify-center items-center px-6">
+        <div className="w-full min-h-[60vh] flex flex-col justify-center items-center px-6">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}

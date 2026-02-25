@@ -11,13 +11,13 @@ import { Suspense, lazy } from "react";
 import { Header } from "../components/Header/Header";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../context/firebase/firebase";
-import { useAuth } from "./hooks/useAuth"; 
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
 // ✅ Lazy load all pages
 import Home from "../pages/Home";
+const UnifiedAuth = lazy(() => import("../pages/UnifiedAuth"));
 const Test = lazy(() => import("../pages/Test"));
-const Auth = lazy(() => import("../pages/Auth"));
 const Community = lazy(() => import("../pages/Community"));
 const Resources = lazy(() => import("../pages/Resources"));
 const ChatWindow = lazy(() => import("../components/Chatbot/ChatWindow"));
@@ -26,104 +26,51 @@ const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
 const CookiePolicy = lazy(() => import("../pages/CookiePolicy"));
 const TermsOfService = lazy(() => import("../pages/TermsOfService"));
 const MentalWellnessResources = lazy(() => import("../pages/WellnessResources"));
-const PsychiatristAuth = lazy(() => import("../pages/PsychiatristAuth"));
 const PsychiatristDashboard = lazy(() => import("../pages/PsychiatristDashboard"));
 const MyChats = lazy(() => import("../pages/MyChats"));
-const AdminAuth = lazy(() => import("../pages/AdminAuth"));
 const AddRequest = lazy(() => import("../pages/AddRequest"));
 const ViewRequests = lazy(() => import("../pages/ViewRequests"));
 const SuggestedResources = lazy(() => import("../pages/SuggestedResources"));
 import AdminReportsPage from '../pages/AdminReportsPage';
 
-// ✅ Protected route wrapper for psychiatrists
+// ✅ Protected route wrapper for psychiatrists and doctors
 const ProtectedPsychiatristRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        console.log('🛡️ No user, redirecting to /psychiatrist-auth');
-        navigate('/psychiatrist-auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'psychiatrist') {
-        console.log('🛡️ User role is not psychiatrist:', user.role, 'redirecting to /auth');
-        navigate('/auth');
-        return;
-      }
-      console.log('🛡️ User is psychiatrist, allowing access');
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'psychiatrist') {
-    return null;
-  }
+  const psychiatristRoles = ['psychiatrist', 'doctor', 'company_doctor'];
+  if (!psychiatristRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
 
-// ✅ Protected route wrapper for students
+// ✅ Protected route wrapper for members / students
 const ProtectedStudentRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        navigate('/auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'student') {
-        navigate('/psychiatrist-auth');
-        return;
-      }
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'student') {
-    return null;
-  }
+  const memberRoles = ['student', 'member', 'company_member'];
+  if (!memberRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
 
-// ✅ Protected route wrapper for admin users
+// ✅ Protected route wrapper for all admin types
 const ProtectedAdminRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        navigate('/admin-auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'admin') {
-        navigate('/admin-auth', { state: { from: location } });
-        return;
-      }
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
+  const adminRoles = ['admin', 'central_admin', 'overall_admin'];
+  if (!adminRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
@@ -145,8 +92,8 @@ function AppShell() {
     return () => unsubscribe();
   }, []);
 
-  // Add "/psychiatrist" to the array to hide header on psychiatrist dashboard
-  const hideHeaderOnPaths = ["/psychiatrist-auth", "/admin-auth", "/psychiatrist"];
+  // Simplified header visibility
+  const hideHeaderOnPaths = ["/auth", "/psychiatrist"];
 
   return (
     <>
@@ -157,39 +104,42 @@ function AppShell() {
             <Route path="/" element={<Home />} />
             <Route path="/test" element={<Test />} />
             <Route path="/therapies" element={<MoodDashboard user={currentUser} />} />
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth" element={<UnifiedAuth />} />
+
             <Route path="/community" element={<Community />} />
             <Route path="/resourcess" element={<Resources />} />
             <Route path="/resources" element={<MentalWellnessResources />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/psychiatrist-auth" element={<PsychiatristAuth />} />
-            <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/admin-reports" element={<AdminReportsPage />} />
-            <Route 
-              path="/psychiatrist" 
+            <Route
+              path="/my-chats"
               element={
-                <ProtectedPsychiatristRoute>
-                  <PsychiatristDashboard />
+                <ProtectedPsychiatristRoute> {/* Professionals can access MyChats */}
+                  <MyChats userId={currentUser?.uid} />
                 </ProtectedPsychiatristRoute>
-              } 
+              }
             />
-            <Route 
-              path="/add-request" 
+            {/* Re-using ProtectedStudentRoute with MyChats for students */}
+            <Route
+              path="/my-chats-student"
               element={
                 <ProtectedStudentRoute>
-                  <AddRequest />
+                  <MyChats userId={currentUser?.uid} />
                 </ProtectedStudentRoute>
-              } 
+              }
             />
-            <Route 
-              path="/my-chats" 
+            {/* Unified Hub Redirections */}
+            <Route path="/psychiatrist" element={<Navigate to="/my-chats" replace />} />
+            <Route path="/add-request" element={<Navigate to="/my-chats-student" replace />} />
+
+            {/* Update the original /my-chats to be smart about roles */}
+            <Route
+              path="/my-chats"
               element={
-                <ProtectedStudentRoute>
-                  <MyChats userId={currentUser?.email} />
-                </ProtectedStudentRoute>
-              } 
+                currentUser ? <MyChats userId={currentUser.uid} /> : <Navigate to="/auth" replace />
+              }
             />
             <Route
               path="/view-requests"
@@ -199,17 +149,20 @@ function AppShell() {
                 </ProtectedAdminRoute>
               }
             />
-              <Route
-                path="/chatbot"
-                element={
-                  <ChatWindow
-                    currentUser={currentUser}
-                    checkingAuth={checkingAuth}
-                    darkMode={darkMode}
-                  />
-                }
-              />
+            <Route
+              path="/chatbot"
+              element={
+                <ChatWindow
+                  currentUser={currentUser}
+                  checkingAuth={checkingAuth}
+                  darkMode={darkMode}
+                />
+              }
+            />
             <Route path="/suggested-resources" element={<SuggestedResources />} />
+
+            {/* Catch-all route for global redirects */}
+            <Route path="*" element={<Navigate to={currentUser ? "/" : "/auth"} replace />} />
           </Routes>
         </Suspense>
       </main>

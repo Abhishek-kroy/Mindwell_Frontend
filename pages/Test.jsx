@@ -6,7 +6,9 @@ import AssessmentIntro from "../components/Assessment/AssessmentIntro";
 import QuestionCard from "../components/Assessment/QuestionCard";
 import ResultSummary from "../components/Assessment/ResultSummary";
 import DetailedAnalysis from "../components/Assessment/DetailedAnalysis";
-import { Waves } from "lucide-react";
+import { analysisData } from "../components/Assessment/analysisData";
+import { Waves, Brain } from "lucide-react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
  * Immersive Fullscreen Assessment Orchestrator
@@ -37,8 +39,8 @@ const MentalHealthQuestionnaire = () => {
 
   // Constants mapping to thematic assets
   const backdrops = {
-    1: "C:/Users/Abhishek Kumar Roy/.gemini/antigravity/brain/c0c50491-27aa-4a35-8a64-104b42b9f54b/assessment_pulse_bg_v2_1772000066219.png",
-    3: "C:/Users/Abhishek Kumar Roy/.gemini/antigravity/brain/c0c50491-27aa-4a35-8a64-104b42b9f54b/weekly_synthesis_bg_1771999879232.png"
+    1: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+    3: "linear-gradient(to top, #dfe9f3 0%, white 100%)"
   };
 
   const handleMoodSelect = (mood) => {
@@ -111,34 +113,59 @@ const MentalHealthQuestionnaire = () => {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
-      setMoodAnalysis({
-        summary: "Your recent reflections suggest a period of transition. While you're maintaining steady energy, there are subtle patterns in your cortisol rhythm.",
-        insights: [
-          "Spikes in evening anxiety clusters",
-          "Resilient response to emotional triggers",
-          "Balanced overall cognitive clarity"
-        ],
-        recommendations: [
-          "Implement a 'Digital Sunset' 1 hour before bed",
-          "Practice Box Breathing during transitions",
-          "Short morning walks for daylight exposure"
-        ]
-      });
+    try {
+      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!API_KEY) {
+        throw new Error("API Key missing");
+      }
+
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `
+        You are an advanced Mental Health AI. Analyze the following assessment results and provide a "Mental Synthesis".
+        
+        Mood Category: ${selectedMood}
+        Score: ${result?.score || 'N/A'}
+        Questions and Answers:
+        ${answers.map((val, i) => `- Q: ${questions[i]?.text} | A: ${val}`).join('\n')}
+
+        Provide the analysis in strict JSON format with these keys:
+        - summary: A compassionate 2-sentence summary of their current state.
+        - insights: An array of 3 specific psychological insights based on their answers.
+        - recommendations: An array of 3 actionable, science-backed steps they can take.
+
+        Keep the tone professional yet empathetic.
+      `;
+
+      const geminiResult = await model.generateContent(prompt);
+      const response = await geminiResult.response;
+      const text = response.text();
+
+      // Clean possible markdown code blocks from JSON
+      const cleanJson = text.replace(/```json|```/gi, "").trim();
+      const dynamicAnalysis = JSON.parse(cleanJson);
+
+      setMoodAnalysis(dynamicAnalysis);
+      await saveResults(result, dynamicAnalysis);
       setStage(4);
+    } catch (error) {
+      console.error("AI Analysis Error:", error);
+      // Fallback to static data
+      const dynamicAnalysis = analysisData[selectedMood] || analysisData['anxiety'];
+      setMoodAnalysis(dynamicAnalysis);
+      setStage(4);
+    } finally {
       setIsAnalyzing(false);
-    }, 1500);
+    }
   };
 
   useEffect(() => {
     if (stage === 0) setStage(1);
-    // Force zero scroll
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'auto'; };
-  }, []);
+  }, [stage, setStage]);
 
   return (
-    <div className="h-screen w-full bg-[#F9FBFF] overflow-hidden relative">
+    <div className="min-h-screen w-full bg-[#F9FBFF] relative pt-24 pb-20">
       <AnimatePresence mode="wait">
         {loading || isAnalyzing ? (
           <motion.div
@@ -186,18 +213,17 @@ const MentalHealthQuestionnaire = () => {
             {/* Stage Background */}
             <div className="absolute inset-0 z-0">
               {backdrops[stage] && (
-                <motion.img
+                <motion.div
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.08 }}
-                  src={backdrops[stage]}
-                  className="w-full h-full object-cover grayscale contrast-125"
-                  alt="Backdrop"
+                  animate={{ opacity: 0.1 }}
+                  style={{ background: backdrops[stage] }}
+                  className="w-full h-full"
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#F9FBFF]/20 to-[#F9FBFF]/80" />
             </div>
 
-            <div className="relative z-10 h-full w-full flex flex-col justify-center py-20">
+            <div className="relative z-10 w-full flex flex-col justify-center py-10">
               {stage === 1 && (
                 <AssessmentIntro
                   onSelectMood={handleMoodSelect}
@@ -237,8 +263,8 @@ const MentalHealthQuestionnaire = () => {
         )}
       </AnimatePresence>
 
-      {/* Persistence Reset in stage > 1 */}
-      {!loading && !isAnalyzing && stage > 1 && (
+      {/* Persistence Reset in stage === 2 only */}
+      {!loading && !isAnalyzing && stage === 2 && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={reset}

@@ -10,12 +10,10 @@ import SessionPanel from './SessionPanel';
 import { API_BASE_URL } from '../../src/utils/api';
 // import { decryptText } from '../../src/utils/encryption';
 
-const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
+const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
   const [showHistory, setShowHistory] = useState(true);
-  const [sessions, setSessions] = useState([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const messagesEndRef = useRef(null);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   const {
     messages,
@@ -29,10 +27,10 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
   } = useChat();
 
   useEffect(() => {
-  if (!checkingAuth && !currentUser) {
-    navigate('/auth');
-  }
-}, [checkingAuth, currentUser, navigator]);
+    if (!checkingAuth && !currentUser) {
+      navigate('/auth');
+    }
+  }, [checkingAuth, currentUser, navigator]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,29 +53,11 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
 
 
 
-  
-  const fetchSessions = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/sessions`, {
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch sessions');
-      setSessions(data.sessions || []);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
 
   const handleSelectSession = async (sessionRef) => {
     try {
-      const currentUser = getAuth().currentUser;
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('User not authenticated');
       const idToken = await currentUser.getIdToken();
       const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionRef}`, {
@@ -85,57 +65,28 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load session');
-  
-      // 🔐 Decrypt history
-      // const decryptedHistory = await Promise.all(
-      //   data.session.history.map(async (msg) => ({
-      //     role: msg.role,
-      //     parts: [{ text: await decryptText(msg.parts[0].text) }],
-      //     videos: msg.videos || [],
-      //   }))
-      // );
 
       const history = data.session.history.map((msg) => ({
-      role: msg.role,
-      parts: [{ text: msg.parts[0].text }], 
-      videos: msg.videos || [],
+        role: msg.role,
+        parts: [{ text: msg.parts[0].text }],
+        videos: msg.videos || [],
       }));
-  
+
       loadSession({
         sessionRef: data.session.sessionRef,
         history,
       });
-  
+
       setShowHistory(false);
     } catch (err) {
       console.error('Failed to load session:', err.message);
     }
   };
 
-  const handleDeleteSession = async (sessionRef) => {
-    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
-    try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionRef}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      if (response.ok) {
-        setSessions((prev) => prev.filter((s) => s.sessionRef !== sessionRef));
-      } else {
-        console.error('Failed to delete session');
-      }
-    } catch (err) {
-      console.error('Error deleting session:', err);
-    }
-  };
-
   const handleShowHistory = () => {
     setShowHistory(true);
-    fetchSessions();
   };
+
   const handleNewChat = () => {
     clearChat();
     setShowHistory(false);
@@ -170,10 +121,7 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
               </div>
               <div className="flex-1 overflow-y-auto -mr-2 pr-2">
                 <SessionPanel
-                  sessions={sessions}
                   onSelectSession={handleSelectSession}
-                  onDeleteSession={handleDeleteSession}
-                  isLoading={isLoadingHistory}
                   darkMode={darkMode}
                 />
               </div>
@@ -184,9 +132,8 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
         {/* Chat Area */}
         <main className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-800/80 text-gray-200' : 'bg-white text-gray-900'}`}>
           {/* Chat Header */}
-          <header className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
+          <header className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
             <div className="flex items-center space-x-3">
               {!showHistory && (
                 <button
@@ -199,9 +146,8 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
               <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 Assistant
                 {sessionRef && (
-                  <span className={`text-xs ml-2 align-middle font-mono ${
-                    darkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
+                  <span className={`text-xs ml-2 align-middle font-mono ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
                     {sessionRef.split('T')[0]}
                   </span>
                 )}
@@ -228,12 +174,10 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {messages.length === 0 && !isLoading ? (
-              <div className={`text-center h-full flex flex-col justify-center items-center ${
-                darkMode ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                  darkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+              <div className={`text-center h-full flex flex-col justify-center items-center ${darkMode ? 'text-gray-200' : 'text-gray-900'
                 }`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+                  }`}>
                   <svg
                     className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
                     fill="none"
@@ -268,9 +212,8 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
             )}
             {isLoading && <LoadingIndicator darkMode={darkMode} />}
             {error && (
-              <div className={`p-3 rounded-lg flex justify-between items-center text-sm ${
-                darkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
-              }`}>
+              <div className={`p-3 rounded-lg flex justify-between items-center text-sm ${darkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+                }`}>
                 <span>⚠️ {error}</span>
                 <button onClick={clearError} className="font-semibold hover:opacity-80">
                   Dismiss
@@ -281,14 +224,12 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
           </div>
 
           {/* Input */}
-          <footer className={`p-4 border-t flex-shrink-0 ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
+          <footer className={`p-4 border-t flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
             <div className="max-w-4xl mx-auto">
               <ChatInput onSendMessage={sendMessage} disabled={isLoading} darkMode={darkMode} />
-              <p className={`text-xs text-center mt-2 ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <p className={`text-xs text-center mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                 AI can make mistakes. Consider checking important information.
               </p>
             </div>

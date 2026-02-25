@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMoodTracker } from '../components/MoodTracker/useMoodTracker';
 import MoodHero from '../components/MoodTracker/MoodHero';
@@ -8,6 +9,7 @@ import MoodPickerModal from '../components/MoodTracker/MoodPickerModal';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const MoodDashboard = () => {
+  const navigate = useNavigate();
   const {
     moodData,
     latestTest,
@@ -99,7 +101,7 @@ const MoodDashboard = () => {
                 showTest={!latestTest || !latestTest.recent}
                 showResources={todayMoodLogged && latestMood}
                 onLogClick={() => setShowMoodPicker(true)}
-                onTestClick={() => {/* Navigation handled in component */ }}
+                onTestClick={() => navigate('/test')}
               />
             </div>
           </motion.section>

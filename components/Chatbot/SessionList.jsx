@@ -30,19 +30,26 @@ const SessionList = ({ sessions, onSelectSession, onDeleteSession, searchTerm, i
                 <div
                     key={session.sessionRef}
                     onClick={() => onSelectSession(session.sessionRef)}
-                    className={`p-4 rounded-lg cursor-pointer transition-colors ${darkMode
-                            ? 'border-white hover:bg-gray-700 border-color-white'
-                            : 'border border-gray-200 hover:bg-white-50 border-color-gray-200'
-                        } flex`}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${darkMode
+                        ? 'border-gray-700 hover:bg-gray-700 bg-gray-800/50'
+                        : 'border border-gray-200 hover:bg-gray-50 bg-white'
+                        } flex items-start gap-2 border shadow-sm hover:shadow-md`}
                 >
                     <div className='overflow-hidden flex-1'>
-                        <h3 className={`text-sm font-medium truncate ${darkMode ? 'text-gray-200' : 'text-gray-900'
-                            }`}>
-                            {session.title || 'Untitled Conversation'}
-                        </h3>
+                        <div className="flex justify-between items-start gap-2">
+                            <h3 className={`text-sm font-semibold truncate ${darkMode ? 'text-gray-100' : 'text-gray-900'
+                                }`}>
+                                {session.title || (session.createdAt ? new Date(session.createdAt).toLocaleDateString() : 'Untitled Chat')}
+                            </h3>
+                            {session.createdAt && (
+                                <span className={`text-[10px] whitespace-nowrap ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                    {new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
+                        </div>
                         <p className={`text-xs mt-1 truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'
                             }`}>
-                            {session.lastMessage || 'No messages'}
+                            {session.lastMessage || 'No messages yet...'}
                         </p>
                     </div>
                     <div>

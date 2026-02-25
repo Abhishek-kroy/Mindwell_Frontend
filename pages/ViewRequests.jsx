@@ -13,16 +13,17 @@ const ViewRequests = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/admin-auth');
+    navigate('/auth');
   };
 
   const fetchList = async () => {
     // Check if user is authenticated as admin
-    if (!user || user.role !== 'admin') {
-      navigate('/admin-auth');
+    const adminRoles = ['admin', 'central_admin', 'overall_admin'];
+    if (!user || !adminRoles.includes(user.role)) {
+      navigate('/auth');
       return;
     }
-    
+
     if (!college) return;
     setLoading(true);
     try {
@@ -39,7 +40,7 @@ const ViewRequests = () => {
       // If unauthorized, redirect to login
       if (err.message.includes('unauthorized') || err.message.includes('auth')) {
         logout();
-        navigate('/admin-auth');
+        navigate('/auth');
       }
       setItems([]);
     } finally {
@@ -49,13 +50,14 @@ const ViewRequests = () => {
 
   useEffect(() => {
     // Only redirect if we're sure the user is not an admin and not loading
-    if (!authLoading && user && user.role !== 'admin') {
-      navigate('/admin-auth');
+    const adminRoles = ['admin', 'central_admin', 'overall_admin'];
+    if (!authLoading && user && !adminRoles.includes(user.role)) {
+      navigate('/auth');
       return;
     }
-    
+
     // If user is admin and we have a college, fetch the list
-    if (user && user.role === 'admin' && college) {
+    if (user && adminRoles.includes(user.role) && college) {
       fetchList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +159,7 @@ const ViewRequests = () => {
                 MindWell
               </span>
             </div>
-            
+
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-2">
@@ -167,16 +169,16 @@ const ViewRequests = () => {
                   Request Management
                 </span>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => navigate('/')}
                 className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
               >
                 Home
               </button>
-              
-              <button 
-                onClick={handleLogout} 
+
+              <button
+                onClick={handleLogout}
                 className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium rounded-xl hover:from-pink-600 hover:to-rose-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
               >
                 Logout
@@ -235,9 +237,9 @@ const ViewRequests = () => {
                 Request Status
               </label>
               <div className="relative">
-                <select 
-                  value={status} 
-                  onChange={(e) => setStatus(e.target.value)} 
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm appearance-none"
                 >
                   <option value="pending">Pending Requests</option>
@@ -258,8 +260,8 @@ const ViewRequests = () => {
             </div>
 
             <div className="flex items-end">
-              <button 
-                onClick={fetchList} 
+              <button
+                onClick={fetchList}
                 disabled={loading}
                 className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
               >
@@ -327,8 +329,8 @@ const ViewRequests = () => {
             ) : (
               <div className="space-y-4">
                 {items.map((r) => (
-                  <div 
-                    key={r.id} 
+                  <div
+                    key={r.id}
                     className="bg-gradient-to-r from-white/60 to-gray-50/60 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 hover:shadow-md transition-all duration-200 hover:from-white/80 hover:to-gray-50/80"
                   >
                     <div className="flex items-start justify-between">
@@ -346,7 +348,7 @@ const ViewRequests = () => {
                               {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                             <span className="flex items-center gap-1">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

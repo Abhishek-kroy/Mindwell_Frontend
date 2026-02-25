@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, RotateCcw, Zap, Info, ChevronRight } from 'lucide-react';
+import { Star, RotateCcw, Zap, Info, ChevronRight, Brain } from 'lucide-react';
 
 const ResultSummary = ({ result, selectedMood, onReset, onAnalyze }) => {
     return (
-        <div className="w-full h-full flex flex-col justify-center items-center px-6">
+        <div className="w-full min-h-[60vh] flex flex-col justify-center items-center px-6">
             <motion.div
                 initial={{ opacity: 0, scale: 0.98, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -94,8 +94,8 @@ const ResultSummary = ({ result, selectedMood, onReset, onAnalyze }) => {
                             onClick={onAnalyze}
                             className="flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-[#2D3142] text-white font-bold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-[#4A4E69] transition-all group"
                         >
-                            <Zap size={16} className="text-[#7C9885]" />
-                            Deep Dive
+                            <Brain size={16} className="text-[#7C9885]" />
+                            Get Detailed AI Analysis
                             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </motion.button>
                     </div>

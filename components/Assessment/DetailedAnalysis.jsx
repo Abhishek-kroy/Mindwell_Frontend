@@ -42,7 +42,7 @@ const DetailedAnalysis = ({ analysis, onBack }) => {
     if (!analysis) return null;
 
     return (
-        <div className="w-full h-full flex flex-col justify-center items-center px-6">
+        <div className="w-full min-h-[70vh] flex flex-col justify-center items-center px-6">
             <div className="w-full max-w-7xl">
                 <div className="mb-8">
                     <motion.button
@@ -59,7 +59,7 @@ const DetailedAnalysis = ({ analysis, onBack }) => {
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                    className="relative bg-white/50 backdrop-blur-[60px] rounded-[3.5rem] p-8 md:p-12 border border-white/60 shadow-[0_40px_80px_-20px_rgba(74,78,105,0.1)] overflow-hidden max-h-[85vh] flex flex-col"
+                    className="relative bg-white/50 backdrop-blur-[60px] rounded-[3.5rem] p-8 md:p-12 border border-white/60 shadow-[0_40px_80px_-20px_rgba(74,78,105,0.1)] overflow-hidden flex flex-col"
                 >
                     <div className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
 
