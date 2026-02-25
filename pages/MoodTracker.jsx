@@ -5,8 +5,6 @@ import MoodHero from '../components/MoodTracker/MoodHero';
 import MoodStatsCard from '../components/MoodTracker/MoodStatsCard';
 import MoodActionCards from '../components/MoodTracker/MoodActionCards';
 import MoodPickerModal from '../components/MoodTracker/MoodPickerModal';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-
 const MoodDashboard = () => {
   const {
     moodData,
@@ -18,7 +16,6 @@ const MoodDashboard = () => {
     submitting
   } = useMoodTracker();
 
-  const [stage, setStage] = useState(1);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   const handleLogMood = async (selectedMood, moodReason) => {
@@ -29,117 +26,62 @@ const MoodDashboard = () => {
     return success;
   };
 
-  const nextStage = () => setStage(prev => Math.min(prev + 1, 3));
-  const prevStage = () => setStage(prev => Math.max(prev - 1, 1));
-
   return (
-    <div className="h-screen w-full bg-[#f8f9fa] overflow-hidden relative">
-      <AnimatePresence mode="wait">
-        {stage === 1 && (
-          <motion.section
-            key="stage1"
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden px-6"
-          >
-            <div className="absolute inset-0 z-0 opacity-20">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#F9FBFF]" />
-            </div>
-            <div className="relative z-10 w-full max-w-7xl mx-auto pt-20">
-              <MoodHero />
-            </div>
-          </motion.section>
-        )}
+    <div className="min-h-screen w-full bg-[#f8f9fa] relative flex flex-col">
+      {/* Unified Dashboard Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <img
+          src="C:\Users\Abhishek Kumar Roy\.gemini\antigravity\brain\c0c50491-27aa-4a35-8a64-104b42b9f54b\weekly_synthesis_bg_1771999879232.png"
+          className="w-full h-full object-cover opacity-5 pointer-events-none"
+          alt="Background"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F9FBFF] via-white/40 to-[#F9FBFF]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#7C9885]/5 rounded-full blur-[140px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#4A4E69]/5 rounded-full blur-[140px]" />
+      </div>
 
-        {stage === 2 && (
-          <motion.section
-            key="stage2"
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden px-6"
-          >
-            <div className="absolute inset-0 z-0">
-              <img
-                src="C:\Users\Abhishek Kumar Roy\.gemini\antigravity\brain\c0c50491-27aa-4a35-8a64-104b42b9f54b\weekly_synthesis_bg_1771999879232.png"
-                className="w-full h-full object-cover opacity-10"
-                alt="Synthesis Background"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#F9FBFF] via-transparent to-[#F9FBFF]" />
-            </div>
-            <div className="relative z-10 w-full max-w-5xl mx-auto">
-              <MoodStatsCard
-                moodData={moodData}
-                latestMood={latestMood}
-                loading={loading}
-              />
-            </div>
-          </motion.section>
-        )}
+      <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto px-10 pt-32 sm:pt-40 pb-12 flex flex-col gap-10">
+        {/* Header/Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="flex-shrink-0"
+        >
+          <MoodHero />
+        </motion.div>
 
-        {stage === 3 && (
-          <motion.section
-            key="stage3"
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full w-full flex flex-col items-center justify-center relative overflow-hidden px-6"
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 pb-20 items-start">
+          {/* Left Section: Stats & Trends */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="lg:col-span-12 xl:col-span-8 rounded-[2.5rem] h-full"
           >
-            <div className="absolute inset-0 z-0 opacity-10">
-              <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#7C9885]/20 rounded-full blur-[120px]" />
-              <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#4A4E69]/10 rounded-full blur-[120px]" />
-            </div>
-            <div className="relative z-10 w-full max-w-4xl mx-auto">
-              <MoodActionCards
-                showMoodLog={!todayMoodLogged}
-                showTest={!latestTest || !latestTest.recent}
-                showResources={todayMoodLogged && latestMood}
-                onLogClick={() => setShowMoodPicker(true)}
-                onTestClick={() => {/* Navigation handled in component */ }}
-              />
-            </div>
-          </motion.section>
-        )}
-      </AnimatePresence>
-
-      {/* Navigation Controls */}
-      <div className="fixed right-10 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-8 items-center">
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStage(s)}
-              className={`w-1.5 transition-all duration-500 rounded-full ${stage === s ? 'h-8 bg-[#7C9885]' : 'h-1.5 bg-[#4A4E69]/20 hover:bg-[#4A4E69]/40'
-                }`}
+            <MoodStatsCard
+              moodData={moodData}
+              latestMood={latestMood}
+              loading={loading}
             />
-          ))}
-        </div>
+          </motion.div>
 
-        <div className="flex flex-col gap-2">
-          {stage > 1 && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={prevStage}
-              className="p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg text-[#4A4E69] border border-white/50"
-            >
-              <ChevronUp size={20} />
-            </motion.button>
-          )}
-          {stage < 3 && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={nextStage}
-              className="p-3 rounded-full bg-[#2D3142] shadow-lg text-white"
-            >
-              <ChevronDown size={20} />
-            </motion.button>
-          )}
+          {/* Right Section: Quick Actions */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="lg:col-span-12 xl:col-span-4 rounded-[2.5rem]"
+          >
+            <MoodActionCards
+              showMoodLog={!todayMoodLogged}
+              showTest={!latestTest || !latestTest.recent}
+              showResources={todayMoodLogged && latestMood}
+              onLogClick={() => setShowMoodPicker(true)}
+              onTestClick={() => {/* Navigation handled in component */ }}
+            />
+          </motion.div>
         </div>
       </div>
 

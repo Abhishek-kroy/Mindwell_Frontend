@@ -11,7 +11,7 @@ import { Suspense, lazy } from "react";
 import { Header } from "../components/Header/Header";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../context/firebase/firebase";
-import { useAuth } from "./hooks/useAuth"; 
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
 // ✅ Lazy load all pages
@@ -146,7 +146,7 @@ function AppShell() {
   }, []);
 
   // Add "/psychiatrist" to the array to hide header on psychiatrist dashboard
-  const hideHeaderOnPaths = ["/psychiatrist-auth", "/admin-auth", "/psychiatrist"];
+  const hideHeaderOnPaths = ["/psychiatrist-auth", "/admin-auth", "/psychiatrist", "/community"];
 
   return (
     <>
@@ -155,7 +155,7 @@ function AppShell() {
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/test" element={<Test />} />
+            <Route path="/test/*" element={<Test />} />
             <Route path="/therapies" element={<MoodDashboard user={currentUser} />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/community" element={<Community />} />
@@ -167,29 +167,29 @@ function AppShell() {
             <Route path="/psychiatrist-auth" element={<PsychiatristAuth />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/admin-reports" element={<AdminReportsPage />} />
-            <Route 
-              path="/psychiatrist" 
+            <Route
+              path="/psychiatrist"
               element={
                 <ProtectedPsychiatristRoute>
                   <PsychiatristDashboard />
                 </ProtectedPsychiatristRoute>
-              } 
+              }
             />
-            <Route 
-              path="/add-request" 
+            <Route
+              path="/add-request"
               element={
                 <ProtectedStudentRoute>
                   <AddRequest />
                 </ProtectedStudentRoute>
-              } 
+              }
             />
-            <Route 
-              path="/my-chats" 
+            <Route
+              path="/my-chats"
               element={
                 <ProtectedStudentRoute>
                   <MyChats userId={currentUser?.email} />
                 </ProtectedStudentRoute>
-              } 
+              }
             />
             <Route
               path="/view-requests"
@@ -199,16 +199,16 @@ function AppShell() {
                 </ProtectedAdminRoute>
               }
             />
-              <Route
-                path="/chatbot"
-                element={
-                  <ChatWindow
-                    currentUser={currentUser}
-                    checkingAuth={checkingAuth}
-                    darkMode={darkMode}
-                  />
-                }
-              />
+            <Route
+              path="/chatbot"
+              element={
+                <ChatWindow
+                  currentUser={currentUser}
+                  checkingAuth={checkingAuth}
+                  darkMode={darkMode}
+                />
+              }
+            />
             <Route path="/suggested-resources" element={<SuggestedResources />} />
           </Routes>
         </Suspense>

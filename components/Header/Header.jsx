@@ -64,17 +64,17 @@ export const Header = () => {
               </h1>
             </Link>
 
-              {/* Desktop Navigation */}
-              <nav className="hidden lg:flex items-center gap-1">
-                <div className="flex items-center gap-1 px-4 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
-                  <NavItem icon={Stars} label="AI Therapist" to="/chatbot" />
-                  <NavItem icon={Stars} label="My Chats" to="/my-chats" />
-                  <NavItem icon={Stars} label="Mood Tracker" to="/therapies" />
-                  <NavItem icon={Stars} label="Hive Network" to="/community" />
-                  <NavItem icon={Stars} label="Wellness Hub" to="/resources" />
-                  {/* <NavItem icon={Stars} label="Students" to="/psychiatrist" /> */}
-                </div>
-              </nav>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-1">
+              <div className="flex items-center gap-1 px-4 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <NavItem icon={Stars} label="AI Therapist" to="/chatbot" />
+                <NavItem icon={Stars} label="My Chats" to="/my-chats" />
+                <NavItem icon={Stars} label="Mood Tracker" to="/therapies" />
+                <NavItem icon={Stars} label="Hive Network" to="/community" />
+                <NavItem icon={Stars} label="Wellness Hub" to="/resources" />
+                {/* <NavItem icon={Stars} label="Students" to="/psychiatrist" /> */}
+              </div>
+            </nav>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-4">

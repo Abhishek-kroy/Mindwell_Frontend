@@ -98,35 +98,35 @@ const MoodStatsCard = ({ moodData, latestMood, loading }) => {
                             <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
 
                             <div className="relative z-10">
-                                <h3 className="text-[10px] font-bold text-[#2D3142] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <h3 className="text-[10px] font-extrabold text-[#1D1F2D] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                     <Activity className="h-4 w-4 text-[#7C9885]" />
                                     Internal Sync
                                 </h3>
 
                                 {trend === 'improving' ? (
                                     <div className="space-y-3">
-                                        <p className="text-lg font-light text-[#2D3142] leading-relaxed">
-                                            Your spirit is <span className="text-[#7C9885] font-bold">lifting consistently.</span>
+                                        <p className="text-xl font-extrabold text-[#1D1F2D] leading-relaxed">
+                                            Your spirit is <span className="text-[#7C9885]">lifting consistently.</span>
                                         </p>
-                                        <p className="text-sm text-[#4A4E69]/60 leading-relaxed font-light">
+                                        <p className="text-sm text-[#4A4E69] leading-relaxed font-bold opacity-90">
                                             The upward curve in your emotional energy suggests a deepening of self-awareness. Keep nurturing this light.
                                         </p>
                                     </div>
                                 ) : trend === 'declining' ? (
                                     <div className="space-y-3">
-                                        <p className="text-lg font-light text-[#2D3142] leading-relaxed">
-                                            I notice some <span className="text-[#4A4E69] font-bold italic text-rose-500">heaviness</span> recently.
+                                        <p className="text-xl font-extrabold text-[#1D1F2D] leading-relaxed">
+                                            I notice some <span className="text-rose-500 italic">heaviness</span> recently.
                                         </p>
-                                        <p className="text-sm text-[#4A4E69]/60 leading-relaxed font-light">
+                                        <p className="text-sm text-[#4A4E69] leading-relaxed font-bold opacity-90">
                                             Remember, every storm is a guest. Be gentle with your thoughts today; you are exactly where you need to be.
                                         </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <p className="text-lg font-light text-[#2D3142] leading-relaxed">
-                                            Your flow is <span className="text-[#7C9885] font-bold italic uppercase tracking-widest text-sm">steady and centered.</span>
+                                        <p className="text-xl font-extrabold text-[#1D1F2D] leading-relaxed">
+                                            Your flow is <span className="text-[#7C9885] italic">steady and centered.</span>
                                         </p>
-                                        <p className="text-sm text-[#4A4E69]/60 leading-relaxed font-light">
+                                        <p className="text-sm text-[#4A4E69] leading-relaxed font-bold opacity-90">
                                             Like a calm lake, this stability is a powerful foundation. You are cultivating a beautiful sense of inner resilience.
                                         </p>
                                     </div>

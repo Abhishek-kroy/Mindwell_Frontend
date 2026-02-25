@@ -70,18 +70,20 @@ export const useAssessment = () => {
         localStorage.setItem('mindWellAssessment', JSON.stringify(state));
     }, [selectedMood, questions, currentQuestionIndex, answers, result, stage]);
 
-    const startAssessment = (mood) => {
+    const startAssessment = useCallback((mood) => {
+        if (!mood) return;
         setLoading(true);
+        setSelectedMood(mood);
+        const moodQuestions = mood === 'happy' ? getQuestionsByMood('sad') : shuffle(getQuestionsByMood(mood));
+        setQuestions(moodQuestions);
+        setAnswers([]);
+        setCurrentQuestionIndex(0);
+        setStage(2);
+
         setTimeout(() => {
-            setSelectedMood(mood);
-            const moodQuestions = mood === 'happy' ? getQuestionsByMood('sad') : shuffle(getQuestionsByMood(mood));
-            setQuestions(moodQuestions);
-            setAnswers([]);
-            setCurrentQuestionIndex(0);
-            setStage(2);
             setLoading(false);
         }, 800);
-    };
+    }, []);
 
     const saveResults = async (assessmentResult) => {
         try {
