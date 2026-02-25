@@ -1,233 +1,266 @@
-import { useState, useEffect } from "react";
-import { Button } from "../components/ui/button";
-import { Progress } from "../components/ui/progress";
-import { shuffle } from "lodash";
-import getQuestionsByMood from "../components/questions";
-import { Heart, Sparkles, Star, Zap, CheckCircle, ArrowRight, RotateCcw, ExternalLink, ArrowLeft, Brain, Shield, Waves } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAssessment } from "../components/Assessment/useAssessment";
+import AssessmentIntro from "../components/Assessment/AssessmentIntro";
+import QuestionCard from "../components/Assessment/QuestionCard";
+import ResultSummary from "../components/Assessment/ResultSummary";
+import DetailedAnalysis from "../components/Assessment/DetailedAnalysis";
+
+import { ChevronRight } from "lucide-react";
 import { getAuth } from "firebase/auth";
-import { collection, doc, setDoc, updateDoc, Timestamp, getDoc, increment } from "firebase/firestore";
-import { db } from "../context/firebase/firebase";
-import ReactMarkdown from 'react-markdown';
-import { API_BASE_URL } from "../src/utils/api";
 
 const answerOptions = {
   anxiety: [
-    { label: "Not at all", value: 0, emoji: "😌", color: "from-emerald-400 via-cyan-400 to-blue-500" },
-    { label: "Several days", value: 1, emoji: "🤔", color: "from-amber-400 via-yellow-400 to-orange-500" },
-    { label: "More than half the days", value: 2, emoji: "😟", color: "from-orange-400 via-red-400 to-pink-500" },
-    { label: "Nearly every day", value: 3, emoji: "😰", color: "from-red-500 via-pink-500 to-purple-600" },
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
+    { label: "Not at all", value: 0, emoji: "😌" },
+    { label: "Several days", value: 1, emoji: "🤔" },
+    { label: "More than half the days", value: 2, emoji: "😟" },
+    { label: "Nearly every day", value: 3, emoji: "😰" }
   ],
   stress: [
-    { label: "Never", value: 0, emoji: "😌", color: "from-emerald-400 via-cyan-400 to-blue-500" },
-    { label: "Almost never", value: 1, emoji: "🤔", color: "from-amber-400 via-yellow-400 to-orange-500" },
-    { label: "Sometimes", value: 2, emoji: "😟", color: "from-orange-400 via-red-400 to-pink-500" },
-    { label: "Fairly often", value: 3, emoji: "😰", color: "from-red-500 via-pink-500 to-purple-600" },
-    { label: "Very often", value: 4, emoji: "😨", color: "from-red-600 via-pink-600 to-purple-700" },
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
+    { label: "Never", value: 0, emoji: "😌" },
+    { label: "Almost never", value: 1, emoji: "🤔" },
+    { label: "Sometimes", value: 2, emoji: "😟" },
+    { label: "Fairly often", value: 3, emoji: "😰" },
+    { label: "Very often", value: 4, emoji: "😨" }
   ],
   anger: [
-    { label: "Rarely or none of the time", value: 0, emoji: "😌", color: "from-emerald-400 via-cyan-400 to-blue-500" },
-    { label: "Some or a little of the time", value: 1, emoji: "🤔", color: "from-amber-400 via-yellow-400 to-orange-500" },
-    { label: "Occasionally or a moderate amount", value: 2, emoji: "😠", color: "from-orange-400 via-red-400 to-pink-500" },
-    { label: "Most or all of the time", value: 3, emoji: "😡", color: "from-red-500 via-pink-500 to-purple-600" },
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
+    { label: "Rarely", value: 0, emoji: "😌" },
+    { label: "Sometimes", value: 1, emoji: "🤔" },
+    { label: "Occasionally", value: 2, emoji: "😠" },
+    { label: "Most of the time", value: 3, emoji: "😡" }
   ],
   low: [
-    { label: "A little of the time", value: 1, emoji: "😌", color: "from-emerald-400 via-cyan-400 to-blue-500" },
-    { label: "Some of the time", value: 2, emoji: "😕", color: "from-amber-400 via-yellow-400 to-orange-500" },
-    { label: "Good part of the time", value: 3, emoji: "😞", color: "from-orange-400 via-red-400 to-pink-500" },
-    { label: "Most of the time", value: 4, emoji: "😩", color: "from-red-500 via-pink-500 to-purple-600" },
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
+    { label: "A little", value: 1, emoji: "😌" },
+    { label: "Some", value: 2, emoji: "😕" },
+    { label: "Good part", value: 3, emoji: "😞" },
+    { label: "Most part", value: 4, emoji: "😩" }
   ],
   sad: [
-    { label: "Not at all", value: 0, emoji: "😌", color: "from-emerald-400 via-cyan-400 to-blue-500" },
-    { label: "Several days", value: 1, emoji: "😕", color: "from-amber-400 via-yellow-400 to-orange-500" },
-    { label: "More than half the days", value: 2, emoji: "😞", color: "from-orange-400 via-red-400 to-pink-500" },
-    { label: "Nearly every day", value: 3, emoji: "😢", color: "from-red-500 via-pink-500 to-purple-600" },
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
-  ],
-  happy: [
-    { label: "Skip", value: 0, emoji: "⏭️", color: "from-slate-400 via-gray-400 to-zinc-500" },
+    { label: "Not at all", value: 0, emoji: "😌" },
+    { label: "Several days", value: 1, emoji: "😕" },
+    { label: "Half the days", value: 2, emoji: "😞" },
+    { label: "Every day", value: 3, emoji: "😢" }
   ]
 };
 
 const getMentalHealthLevel = (score, mood) => {
   if (mood === 'anxiety') {
-    if (score <= 4) return { level: "Minimal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your anxiety levels are minimal." };
-    if (score <= 9) return { level: "Mild", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're experiencing mild anxiety." };
-    if (score <= 14) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate anxiety." };
-    return { level: "Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing severe anxiety. Consider professional support." };
+    if (score <= 4) return { level: "Minimal", color: "bg-emerald-500", message: "Your anxiety looks minimal." };
+    if (score <= 9) return { level: "Mild", color: "bg-blue-500", message: "You're experiencing mild anxiety." };
+    if (score <= 14) return { level: "Moderate", color: "bg-amber-500", message: "You're experiencing moderate anxiety." };
+    return { level: "Severe", color: "bg-rose-500", message: "You're experiencing severe anxiety." };
   }
-
-  if (mood === 'stress') {
-    if (score <= 13) return { level: "Low", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your stress levels are low." };
-    if (score <= 19) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate stress." };
-    if (score <= 25) return { level: "High", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing high stress." };
-    return { level: "Very High", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing very high stress. Consider stress management techniques." };
-  }
-
-  if (mood === 'anger') {
-    if (score <= 7) return { level: "Minimal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your anger levels are minimal." };
-    if (score <= 14) return { level: "Mild", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing mild anger." };
-    if (score <= 21) return { level: "Moderate", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing moderate anger." };
-    return { level: "Severe", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing severe anger. Consider anger management strategies." };
-  }
-
-  if (mood === 'low') {
-    if (score <= 10) return { level: "Normal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your energy levels are normal." };
-    if (score <= 20) return { level: "Mild", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're experiencing mild low energy." };
-    if (score <= 30) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate low energy." };
-    return { level: "Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing severe low energy. Consider consulting a healthcare provider." };
-  }
-
-  if (mood === 'sad') {
-    if (score <= 4) return { level: "Minimal", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your mood is positive." };
-    if (score <= 9) return { level: "Mild", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're experiencing mild mood concerns." };
-    if (score <= 14) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "You're experiencing moderate mood concerns." };
-    if (score <= 19) return { level: "Moderately Severe", color: "from-orange-500 via-red-500 to-pink-600", message: "You're experiencing moderately severe mood concerns." };
-    return { level: "Severe", color: "from-red-600 via-pink-600 to-purple-700", message: "You're experiencing severe mood concerns. Consider seeking support." };
-  }
-
-  if (score <= 5) return { level: "Excellent", color: "from-emerald-400 via-cyan-400 to-blue-500", message: "Your mental wellness is thriving!" };
-  if (score <= 10) return { level: "Good", color: "from-blue-400 via-indigo-400 to-purple-500", message: "You're maintaining great balance!" };
-  if (score <= 15) return { level: "Moderate", color: "from-amber-400 via-yellow-400 to-orange-500", message: "Some mindful attention could help." };
-  return { level: "Needs Support", color: "from-orange-500 via-red-500 to-pink-600", message: "Consider connecting with support resources." };
-};
-
-const videoSuggestions = {
-  anxiety: {
-    "Excellent": "https://www.youtube.com/watch?v=Ufmu1WD2TSk",
-    "Good": "https://www.youtube.com/watch?v=6vO1wPAmiMQ",
-    "Moderate": "https://www.youtube.com/watch?v=1ZYbU82GVz4",
-    "Needs Support": "https://www.youtube.com/watch?v=ZToicYcHIOU",
-  },
-  stress: {
-    "Excellent": "https://www.youtube.com/watch?v=ntfcfJ28eiU",
-    "Good": "https://www.youtube.com/watch?v=Jyy0ra2WcQQ",
-    "Moderate": "https://www.youtube.com/watch?v=1ZYbU82GVz4",
-    "Needs Support": "https://www.youtube.com/watch?v=ZToicYcHIOU",
-  },
-  low: {
-    "Excellent": "https://www.youtube.com/watch?v=Ufmu1WD2TSk",
-    "Good": "https://www.youtube.com/watch?v=6vO1wPAmiMQ",
-    "Moderate": "https://www.youtube.com/watch?v=1ZYbU82GVz4",
-    "Needs Support": "https://www.youtube.com/watch?v=ZToicYcHIOU",
-  },
-  sad: {
-    "Excellent": "https://www.youtube.com/watch?v=Ufmu1WD2TSk",
-    "Good": "https://www.youtube.com/watch?v=6vO1wPAmiMQ",
-    "Moderate": "https://www.youtube.com/watch?v=1ZYbU82GVz4",
-    "Needs Support": "https://www.youtube.com/watch?v=ZToicYcHIOU",
-  },
-  happy: {
-    video: "https://www.youtube.com/watch?v=d-diB65scQU",
-  },
+  // Simplified for other moods
+  if (score <= 5) return { level: "Excellent", color: "bg-emerald-500", message: "You're thriving!" };
+  if (score <= 10) return { level: "Good", color: "bg-blue-500", message: "You're maintaining balance." };
+  return { level: "Needs Support", color: "bg-rose-500", message: "Consider connecting with support." };
 };
 
 const happyQuotes = [
-  "Happiness is not something ready-made. It comes from your own actions. - Dalai Lama",
-  "The purpose of our lives is to be happy. - Dalai Lama",
-  "Happiness is when what you think, what you say, and what you do are in harmony. - Mahatma Gandhi",
-  "The only thing that will make you happy is being happy with who you are. - Goldie Hawn",
-  "Happiness is a choice, not a result. Nothing will make you happy until you choose to be happy. - Ralph Marston",
-  "The happiest people don't have the best of everything, they just make the best of everything. - Anonymous",
-  "Happiness is not by chance, but by choice. - Jim Rohn",
-  "Count your age by friends, not years. Count your life by smiles, not tears. - John Lennon",
-  "The best way to cheer yourself is to try to cheer someone else up. - Mark Twain",
-  "Happiness radiates like the fragrance from a flower and draws all good things towards you. - Maharishi Mahesh Yogi"
+  "Happiness is not something ready-made. It comes from your own actions.",
+  "The purpose of our lives is to be happy.",
+  "Happiness is a choice, not a result."
 ];
 
-const FloatingOrbs = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(15)].map((_, i) => (
-      <div
-        key={i}
-        className="absolute animate-pulse"
-        style={{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 3}s`,
-          animationDuration: `${3 + Math.random() * 4}s`,
-        }}
-      >
-        <div
-          className="rounded-full bg-gradient-to-r from-cyan-300/20 via-purple-300/20 to-pink-300/20 blur-sm"
-          style={{
-            width: `${6 + Math.random() * 12}px`,
-            height: `${6 + Math.random() * 12}px`,
-          }}
-        ></div>
-      </div>
-    ))}
-  </div>
-);
+const MentalHealthQuestionnaire = () => {
+  const navigate = useNavigate();
+  const {
+    selectedMood,
+    questions,
+    currentQuestionIndex,
+    setCurrentQuestionIndex,
+    answers,
+    setAnswers,
+    result,
+    setResult,
+    stage,
+    setStage,
+    loading,
+    startAssessment,
+    saveResults,
+    reset
+  } = useAssessment();
 
-const AnimatedGrid = () => (
-  <div className="absolute inset-0 opacity-10">
-    <div
-      className="w-full h-full"
-      style={{
-        backgroundImage: `
-          linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
-        `,
-        backgroundSize: '37.5px 37.5px',
-        animation: 'grid-move 20s linear infinite',
-      }}
-    ></div>
-    <style jsx>{`
-      @keyframes grid-move {
-        0% { transform: translate(0, 0); }
-        100% { transform: translate(37.5px, 37.5px); }
+  const [moodAnalysis, setMoodAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleMoodSelect = (mood) => {
+    startAssessment(mood);
+  };
+
+  const handleAnswer = (value) => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[currentQuestionIndex] = value;
+    setAnswers(updatedAnswers);
+
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Calculate results
+      if (selectedMood === 'happy') {
+        const happyResult = {
+          type: 'happy',
+          level: 'Vibrant',
+          color: 'bg-yellow-400',
+          quote: happyQuotes[Math.floor(Math.random() * happyQuotes.length)]
+        };
+        setResult(happyResult);
+        saveResults(happyResult);
+        setStage(3);
+      } else {
+        const totalScore = updatedAnswers.reduce((a, b) => a + b, 0);
+        const assessmentResult = getMentalHealthLevel(totalScore, selectedMood);
+        setResult(assessmentResult);
+        saveResults(assessmentResult);
+        setStage(3);
       }
-    `}</style>
-  </div>
-);
-
-const MoodCard = ({ mood, emoji, label, description, onClick, index }) => {
-  const colors = {
-    anxiety: "from-violet-500 via-purple-500 to-indigo-600",
-    stress: "from-amber-500 via-orange-500 to-red-600",
-    low: "from-cyan-500 via-teal-500 to-emerald-600",
-    sad: "from-rose-500 via-pink-500 to-purple-600",
-    happy: "from-yellow-400 via-orange-400 to-pink-500"
+    }
   };
 
-  const glowColors = {
-    anxiety: "shadow-violet-500/25",
-    stress: "shadow-orange-500/25",
-    low: "shadow-cyan-500/25",
-    sad: "shadow-pink-500/25",
-    happy: "shadow-yellow-500/25"
+  const handleBack = () => {
+    if (stage === 1) {
+      navigate('/therapies');
+    } else if (stage === 2) {
+      if (currentQuestionIndex === 0) {
+        setStage(1);
+      } else {
+        setCurrentQuestionIndex(currentQuestionIndex - 1);
+      }
+    } else if (stage === 3) {
+      setStage(2);
+      setCurrentQuestionIndex(questions.length - 1);
+    } else if (stage === 4) {
+      setStage(3);
+    }
   };
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    // Mocking API call for now to ensure theme works
+    setTimeout(() => {
+      setMoodAnalysis({
+        summary: "Your recent reflections suggest a period of transition. While you're maintaining steady energy, there are subtle patterns of cortisol-driven anxiety in evening hours.",
+        insights: [
+          "Evening anxiety spikes linked to digital fatigue",
+          "Strong resilience core despite periodic stress",
+          "Balanced sleep-wake emotional cycle"
+        ],
+        recommendations: [
+          "Implement a 'Digital Sunset' 2 hours before bed",
+          "Practice Box Breathing during peak work hours",
+          "Nature walk (15 mins) to recalibrate cortisol"
+        ]
+      });
+      setStage(4);
+      setIsAnalyzing(false);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    // Initial stage setup
+    if (stage === 0) setStage(1);
+  }, []);
 
   return (
-    <div
-      className="group relative cursor-pointer transform transition-all duration-500 hover:scale-105"
-      onClick={() => onClick(mood)}
-      style={{ animationDelay: `${index * 0.075}s` }}
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${colors[mood]} rounded-2xl opacity-0 group-hover:opacity-20 transition-all duration-500 blur-xl ${glowColors[mood]}`}></div>
-
-      <div className="relative p-6 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 transition-all duration-500 group-hover:shadow-xl group-hover:bg-white/90">
-        <div className="text-center space-y-3">
-          <div className="relative">
-            <div className="text-4xl transition-all duration-500 group-hover:scale-110 filter drop-shadow-lg">
-              {emoji}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          </div>
-          <h3 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            {label}
-          </h3>
-          <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
-        </div>
-
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1">
-          <ArrowRight className="w-4 h-4 text-gray-400" />
-        </div>
+    <div className="min-h-screen bg-[#F9FBFF] selection:bg-[#7C9885]/20 pb-10">
+      {/* Background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#7C9885]/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#4A4E69]/5 rounded-full blur-[120px]" />
       </div>
+
+      <div className="relative pt-32">
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-40 gap-8"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-[#7C9885]/20 rounded-full blur-2xl animate-pulse" />
+                <div className="relative w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-[#7C9885] shadow-2xl border border-white/60">
+                  <Waves size={32} />
+                </div>
+              </motion.div>
+              <div className="space-y-2 text-center">
+                <p className="text-[#2D3142] font-bold tracking-[0.4em] uppercase text-[10px] items-center flex gap-2">
+                  Calibrating <span className="text-[#7C9885]">Emotional Resonance</span>
+                </p>
+                <div className="flex justify-center gap-1">
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-1 h-1 rounded-full bg-[#7C9885]" />
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1 h-1 rounded-full bg-[#7C9885]" />
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1 h-1 rounded-full bg-[#7C9885]" />
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              {stage === 1 && (
+                <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <AssessmentIntro
+                    onSelectMood={handleMoodSelect}
+                    onBack={() => navigate('/therapies')}
+                  />
+                </motion.div>
+              )}
+
+              {stage === 2 && (
+                <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <QuestionCard
+                    question={questions[currentQuestionIndex]}
+                    options={answerOptions[selectedMood === 'happy' ? 'sad' : selectedMood] || []}
+                    onAnswer={handleAnswer}
+                    onBack={handleBack}
+                    currentProgress={((currentQuestionIndex + 1) / questions.length) * 100}
+                    currentIndex={currentQuestionIndex}
+                    totalQuestions={questions.length}
+                  />
+                </motion.div>
+              )}
+
+              {stage === 3 && (
+                <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <ResultSummary
+                    result={result}
+                    selectedMood={selectedMood}
+                    onReset={reset}
+                    onAnalyze={handleAnalyze}
+                  />
+                </motion.div>
+              )}
+
+              {stage === 4 && (
+                <motion.div key="analysis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <DetailedAnalysis
+                    analysis={moodAnalysis}
+                    onBack={() => setStage(3)}
+                  />
+                </motion.div>
+              )}
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Persistence Button - Reset */}
+      {stage !== 1 && !loading && (
+        <div className="mt-20 flex justify-center opacity-30 hover:opacity-100 transition-opacity">
+          <button
+            onClick={reset}
+            className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#4A4E69] hover:text-[#7C9885]"
+          >
+            Reset Assessment Session
+          </button>
+        </div>
+      )}
     </div>
   );
 };

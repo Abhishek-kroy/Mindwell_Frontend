@@ -11,7 +11,7 @@ import { Suspense, lazy } from "react";
 import { Header } from "../components/Header/Header";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../context/firebase/firebase";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "./hooks/useAuth"; 
 import "./App.css";
 
 // ✅ Lazy load all pages
@@ -32,6 +32,7 @@ const MyChats = lazy(() => import("../pages/MyChats"));
 const AdminAuth = lazy(() => import("../pages/AdminAuth"));
 const AddRequest = lazy(() => import("../pages/AddRequest"));
 const ViewRequests = lazy(() => import("../pages/ViewRequests"));
+const SuggestedResources = lazy(() => import("../pages/SuggestedResources"));
 import AdminReportsPage from '../pages/AdminReportsPage';
 
 // ✅ Protected route wrapper for psychiatrists
@@ -208,6 +209,7 @@ function AppShell() {
                   />
                 }
               />
+            <Route path="/suggested-resources" element={<SuggestedResources />} />
           </Routes>
         </Suspense>
       </main>

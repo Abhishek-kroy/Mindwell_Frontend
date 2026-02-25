@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrainCircuit, Stars, Atom, Satellite, ShieldHalf, LogIn, LogOut, Rocket, Menu, X } from "lucide-react";
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { getAuth, signOut } from "firebase/auth";
 import app from "../../context/firebase/firebase";
@@ -42,51 +43,26 @@ export const Header = () => {
 
   return (
     <>
-      {/* Fixed positioning container with reduced top padding */}
-      <div className="fixed top-0 left-0 right-0 z-50 px-4 pt-2">
-        <header 
-          className={`
-            w-full bg-gradient-to-r from-gray-900/95 via-purple-900/95 to-indigo-900/95 
-            backdrop-blur-xl border border-indigo-400/20 shadow-2xl rounded-2xl
-            transition-all duration-500 ease-out
-            ${isScrolled ? 'max-w-4xl mx-auto shadow-indigo-500/20' : 'max-w-7xl mx-auto'}
-            ${isScrolled ? 'py-2' : 'py-3'}
-          `}
-          style={{
-            boxShadow: isScrolled 
-              ? '0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 80px rgba(139, 92, 246, 0.15)' 
-              : '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 60px rgba(139, 92, 246, 0.1)'
+      <div className="fixed top-0 left-0 right-0 z-50 flex justify-center p-4 sm:p-6 pointer-events-none">
+        <motion.header
+          initial={false}
+          animate={{
+            backgroundColor: isScrolled ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.15)",
+            boxShadow: isScrolled ? "0 10px 30px -10px rgba(45, 49, 66, 0.1)" : "0 4px 20px -5px rgba(45, 49, 66, 0.02)",
           }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="pointer-events-auto w-full max-w-5xl h-16 sm:h-20 backdrop-blur-3xl border border-white/20 rounded-[2rem] flex items-center overflow-hidden"
         >
-          <div className="px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-              {/* Logo/Branding */}
-              <Link to="/" className="flex items-center gap-2 cursor-pointer group">
-                <div className="relative">
-                  <div 
-                    className={`
-                      p-1.5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full 
-                      transition-all duration-300 group-hover:scale-110
-                      ${isScrolled ? 'shadow-lg shadow-indigo-500/30' : 'shadow-xl shadow-indigo-500/40'}
-                    `}
-                  >
-                    <BrainCircuit
-                      className={`text-white transition-all duration-300 ${isScrolled ? 'h-4 w-4' : 'h-5 w-5'}`}
-                      style={{ animation: "spin 8s linear infinite" }}
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-300 blur-md"></div>
-                </div>
-                <h1 
-                  className={`
-                    font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-blue-300 
-                    bg-clip-text text-transparent tracking-tight transition-all duration-300
-                    ${isScrolled ? 'text-lg' : 'text-xl'}
-                  `}
-                >
-                  MindWell
-                </h1>
-              </Link>
+          <div className="flex-1 px-6 sm:px-10 flex items-center justify-between">
+            {/* Logo/Branding */}
+            <Link to="/" className="flex items-center gap-3 cursor-pointer group shrink-0">
+              <div className="p-1.5 sm:p-2 bg-[#2D3142] rounded-xl shadow-md transition-transform group-hover:scale-110">
+                <BrainCircuit className="h-4 w-4 sm:h-5 w-5 text-white" />
+              </div>
+              <h1 className="font-bold text-[#2D3142] tracking-tighter text-lg sm:text-xl">
+                MindWell
+              </h1>
+            </Link>
 
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center gap-1">
@@ -100,64 +76,74 @@ export const Header = () => {
                 </div>
               </nav>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {/* Desktop Action Buttons */}
-                <div className="hidden md:flex items-center gap-2">
-                  <ActionButton 
-                    icon={isLoggedIn ? LogOut : LogIn} 
-                    label={isLoggedIn ? "Logout" : "Login"} 
-                    variant="pink"
-                    onClick={handleAuthAction}
-                    isScrolled={isScrolled}
-                  />
-                </div>
-
-                {/* Mobile Menu Button */}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center">
                 <button
-                  onClick={toggleMobileMenu}
-                  className="md:hidden p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                  onClick={handleAuthAction}
+                  className="bg-[#2D3142] text-white text-[13px] font-bold px-6 py-2.5 rounded-2xl hover:bg-[#4A4E69] transition-all"
                 >
-                  {isMobileMenuOpen ? (
-                    <X className="h-4 w-4 text-white" />
-                  ) : (
-                    <Menu className="h-4 w-4 text-white" />
-                  )}
+                  {isLoggedIn ? "Logout" : "Login"}
                 </button>
               </div>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={toggleMobileMenu}
+                className="lg:hidden p-2 rounded-2xl bg-[#2D3142]/5 hover:bg-[#2D3142]/10 transition-colors"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6 text-[#2D3142]" />
+                ) : (
+                  <Menu className="h-6 w-6 text-[#2D3142]" />
+                )}
+              </button>
             </div>
           </div>
-
-          {/* Animated Glow Effects */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-            <div className="absolute top-0 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute top-0 right-1/4 w-24 h-24 bg-indigo-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent blur-sm"></div>
-          </div>
-        </header>
+        </motion.header>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={toggleMobileMenu}
-          ></div>
-          <div className="fixed top-16 left-4 right-4 bg-gradient-to-b from-gray-900/95 to-purple-900/95 backdrop-blur-xl border border-indigo-400/20 rounded-2xl shadow-2xl p-4">
-            <div className="space-y-2">
-              <MobileNavItem icon={Stars} label="Students" to="/psychiatrist" />
-              <hr className="border-white/10" />
-              <div onClick={handleAuthAction}>
-                <MobileNavItem 
-                  icon={isLoggedIn ? LogOut : LogIn} 
-                  label={isLoggedIn ? "Logout" : "Login"} 
-                />
+      {/* Modern Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] lg:hidden"
+          >
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-3xl" onClick={toggleMobileMenu} />
+
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="absolute top-0 right-0 h-full w-[300px] bg-white shadow-2xl p-10 pt-24"
+            >
+              <button onClick={toggleMobileMenu} className="absolute top-8 right-8 p-2 rounded-2xl bg-gray-50">
+                <X className="h-6 w-6 text-[#2D3142]" />
+              </button>
+
+              <div className="space-y-4">
+                <MobileNavItem label="AI Therapist" to="/chatbot" onClick={toggleMobileMenu} />
+                <MobileNavItem label="My Chats" to="/my-chats" onClick={toggleMobileMenu} />
+                <MobileNavItem label="Mood Tracker" to="/therapies" onClick={toggleMobileMenu} />
+                <MobileNavItem label="Hive Network" to="/community" onClick={toggleMobileMenu} />
+
+                <div className="pt-10 border-t border-gray-100 mt-10">
+                  <button
+                    onClick={() => { handleAuthAction(); toggleMobileMenu(); }}
+                    className="w-full bg-[#2D3142] text-white p-5 rounded-[1.25rem] font-bold shadow-lg"
+                  >
+                    {isLoggedIn ? "Logout Account" : "Get Started"}
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin {
@@ -169,52 +155,23 @@ export const Header = () => {
   );
 };
 
-const NavItem = ({ icon: Icon, label, to }) => (
-  <Link to={to} className="group relative px-3 py-1.5 rounded-full hover:bg-white/10 transition-all duration-300 cursor-pointer">
-    <div className="flex items-center gap-2">
-      <Icon className="h-3.5 w-3.5 text-indigo-300 group-hover:text-white transition-colors" />
-      <span className="text-xs font-medium text-indigo-300 group-hover:text-white transition-colors">
-        {label}
-      </span>
-    </div>
-    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+const NavItem = ({ label, to }) => (
+  <Link
+    to={to}
+    className="relative group px-4 py-2 text-[#4A4E69] hover:text-[#2D3142] text-[13px] font-semibold transition-all duration-300"
+  >
+    <span>{label}</span>
+    <span className="absolute bottom-1 left-4 right-4 h-[1.5px] bg-[#2D3142] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
   </Link>
 );
 
-const ActionButton = ({ icon: Icon, label, variant, onClick, isScrolled }) => {
-  const variants = {
-    indigo: "from-indigo-600 to-purple-600 hover:shadow-indigo-500/40",
-    pink: "from-pink-600 to-rose-600 hover:shadow-pink-500/40",
-    cyan: "from-blue-500 to-cyan-500 hover:shadow-cyan-500/40"
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        group relative flex items-center gap-2 px-3 py-1.5 
-        bg-gradient-to-r ${variants[variant]} text-white text-xs rounded-full 
-        shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl
-        ${isScrolled ? 'px-2.5 py-1 text-xs' : ''}
-      `}
-    >
-      <Icon className={`transition-all duration-300 ${isScrolled ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
-      <span className={`font-medium transition-all duration-300 ${isScrolled ? 'text-xs' : 'text-xs'}`}>
-        {label}
-      </span>
-      <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    </button>
-  );
-};
-
-const MobileNavItem = ({ icon: Icon, label, to, onClick }) => (
-  <Link to={to} onClick={onClick} className="w-full group flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-all duration-300">
-    <div className="p-1.5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-lg group-hover:scale-110 transition-transform">
-      <Icon className="h-4 w-4 text-indigo-300 group-hover:text-white transition-colors" />
-    </div>
-    <span className="text-indigo-300 group-hover:text-white font-medium text-sm transition-colors">
-      {label}
-    </span>
+const MobileNavItem = ({ label, to, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className="block w-full text-left p-4 rounded-3xl text-[#4A4E69] hover:text-[#2D3142] hover:bg-gray-50 text-base font-bold transition-all"
+  >
+    {label}
   </Link>
 );
 
