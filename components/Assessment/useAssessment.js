@@ -5,6 +5,40 @@ import { getAuth } from "firebase/auth";
 import { collection, doc, setDoc, updateDoc, Timestamp, getDoc, increment } from "firebase/firestore";
 import { db } from "../../context/firebase/firebase";
 
+const answerOptions = {
+    anxiety: [
+        { label: "Not at all", value: 0, emoji: "😌" },
+        { label: "Several days", value: 1, emoji: "🤔" },
+        { label: "More than half the days", value: 2, emoji: "😟" },
+        { label: "Nearly every day", value: 3, emoji: "😰" }
+    ],
+    stress: [
+        { label: "Never", value: 0, emoji: "😌" },
+        { label: "Almost never", value: 1, emoji: "🤔" },
+        { label: "Sometimes", value: 2, emoji: "😟" },
+        { label: "Fairly often", value: 3, emoji: "😰" },
+        { label: "Very often", value: 4, emoji: "😨" }
+    ],
+    anger: [
+        { label: "Rarely", value: 0, emoji: "😌" },
+        { label: "Sometimes", value: 1, emoji: "🤔" },
+        { label: "Occasionally", value: 2, emoji: "😠" },
+        { label: "Most of the time", value: 3, emoji: "😡" }
+    ],
+    low: [
+        { label: "A little", value: 1, emoji: "😌" },
+        { label: "Some", value: 2, emoji: "😕" },
+        { label: "Good part", value: 3, emoji: "😞" },
+        { label: "Most part", value: 4, emoji: "😩" }
+    ],
+    sad: [
+        { label: "Not at all", value: 0, emoji: "😌" },
+        { label: "Several days", value: 1, emoji: "😕" },
+        { label: "Half the days", value: 2, emoji: "😞" },
+        { label: "Every day", value: 3, emoji: "😢" }
+    ]
+};
+
 export const useAssessment = () => {
     const [selectedMood, setSelectedMood] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -111,6 +145,7 @@ export const useAssessment = () => {
         loading,
         startAssessment,
         saveResults,
-        reset
+        reset,
+        answerOptions
     };
 };

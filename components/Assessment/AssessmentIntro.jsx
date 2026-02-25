@@ -12,73 +12,69 @@ const moodOptions = [
 
 const AssessmentIntro = ({ onSelectMood, onBack }) => {
     return (
-        <div className="w-full max-w-7xl mx-auto px-6 py-12">
+        <div className="w-full h-full flex flex-col justify-center items-center px-6">
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-24 space-y-8"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center mb-16 space-y-6"
             >
                 <motion.button
-                    whileHover={{ x: -4 }}
+                    whileHover={{ x: -4, backgroundColor: "rgba(255,255,255,0.7)" }}
                     onClick={onBack}
-                    className="inline-flex items-center gap-3 text-[#4A4E69]/40 hover:text-[#2D3142] transition-all mb-12 group p-2 px-4 rounded-full hover:bg-white/50"
+                    className="inline-flex items-center gap-3 text-[#4A4E69]/40 hover:text-[#2D3142] transition-all mb-4 group p-2 px-6 rounded-full bg-white/30 backdrop-blur-md border border-white/40"
                 >
-                    <ArrowLeft className="h-4 w-4 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] font-mono">Back to Sanctuary</span>
+                    <ArrowLeft className="h-3 w-3 transition-transform" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.4em]">Return</span>
                 </motion.button>
 
-                <h1 className="text-5xl md:text-8xl font-bold text-[#2D3142] tracking-tighter leading-[0.9] max-w-4xl mx-auto">
-                    How is your <br /> <span className="text-[#7C9885]">pulse</span> today?
+                <h1 className="text-5xl md:text-7xl font-bold text-[#2D3142] tracking-tighter leading-none max-w-4xl mx-auto">
+                    How is your <br /> <span className="text-[#7C9885]">inner rhythm</span>?
                 </h1>
-                <p className="text-xl md:text-2xl text-[#4A4E69]/40 max-w-xl mx-auto font-light leading-relaxed">
-                    Honest reflection is the threshold of peace. Choose the energy that resonates with you most right now.
+                <p className="text-lg md:text-xl text-[#4A4E69]/40 max-w-lg mx-auto font-light leading-relaxed">
+                    Honesty is the threshold of peace. Select the energy that resonates most.
                 </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-24">
+            <div className="flex flex-wrap justify-center gap-6 max-w-6xl w-full">
                 {moodOptions.map((mood, index) => (
                     <motion.button
                         key={mood.id}
-                        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{
                             delay: index * 0.1,
                             type: "spring",
-                            stiffness: 100,
-                            damping: 15
+                            stiffness: 80,
+                            damping: 12
                         }}
-                        whileHover={{ y: -12, scale: 1.02 }}
+                        whileHover={{ y: -10, scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onSelectMood(mood.id)}
-                        className="group relative flex flex-col items-center p-10 bg-white/40 backdrop-blur-[40px] rounded-[3.5rem] border border-white/60 shadow-[0_40px_80px_-20px_rgba(74,78,105,0.1)] hover:shadow-2xl transition-all duration-700 overflow-hidden"
+                        className="group relative flex flex-col items-center p-8 bg-white/50 backdrop-blur-[60px] rounded-[3rem] border border-white/60 shadow-[0_30px_60px_-15px_rgba(74,78,105,0.08)] hover:shadow-2xl transition-all duration-500 overflow-hidden w-full md:w-[200px]"
                     >
-                        {/* Texture overlay */}
-                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
+                        {/* Sub-pixel Glow Effect */}
+                        <div className="absolute -inset-px bg-gradient-to-b from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[3rem]" />
 
-                        <div className={`w-20 h-20 rounded-[2rem] ${mood.iconBg} flex items-center justify-center text-[#2D3142] mb-8 shadow-xl transition-transform duration-700 group-hover:rotate-12`}>
+                        <div className={`w-16 h-16 rounded-2xl ${mood.iconBg} flex items-center justify-center text-[#2D3142] mb-6 shadow-lg transition-transform duration-500 group-hover:rotate-6`}>
                             {mood.icon}
                         </div>
-                        <h3 className="text-2xl font-bold text-[#2D3142] mb-3 tracking-tight">{mood.label}</h3>
-                        <p className="text-[#4A4E69]/40 text-[10px] font-bold uppercase tracking-[0.2em] text-center leading-relaxed max-w-[120px]">
+                        <h3 className="text-xl font-bold text-[#2D3142] mb-2 tracking-tight">{mood.label}</h3>
+                        <p className="text-[#4A4E69]/40 text-[9px] font-bold uppercase tracking-[0.2em] text-center leading-relaxed">
                             {mood.description}
                         </p>
-
-                        <div className="absolute bottom-5 opacity-0 group-hover:opacity-20 transition-opacity">
-                            <Sparkles size={12} className="text-[#7C9885]" />
-                        </div>
                     </motion.button>
                 ))}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-12 opacity-30 mt-10">
-                <div className="flex items-center gap-3">
-                    <Shield className="h-4 w-4" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.4em]">Confidential Protocol</span>
+            <div className="flex items-center gap-10 opacity-20 mt-20">
+                <div className="flex items-center gap-2">
+                    <Shield size={12} />
+                    <span className="text-[8px] font-bold uppercase tracking-[0.4em]">Private Protocol</span>
                 </div>
-                <div className="w-[1px] h-6 bg-[#4A4E69]/20" />
-                <div className="flex items-center gap-3">
-                    <Brain className="h-4 w-4" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.4em]">Adaptive Insight</span>
+                <div className="w-1 h-1 bg-[#4A4E69]/40 rounded-full" />
+                <div className="flex items-center gap-2">
+                    <Brain size={12} />
+                    <span className="text-[8px] font-bold uppercase tracking-[0.4em]">Adaptive Analysis</span>
                 </div>
             </div>
         </div>
