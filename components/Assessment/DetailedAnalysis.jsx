@@ -42,90 +42,74 @@ const DetailedAnalysis = ({ analysis, onBack }) => {
     if (!analysis) return null;
 
     return (
-        <div className="w-full max-w-7xl mx-auto px-6 pb-24">
-            <div className="mb-20">
-                <motion.button
-                    whileHover={{ x: -4 }}
-                    onClick={onBack}
-                    className="inline-flex items-center gap-3 text-[#4A4E69]/40 hover:text-[#2D3142] transition-all group p-2 px-4 rounded-full hover:bg-white/50 border border-transparent hover:border-white"
-                >
-                    <ArrowLeft className="h-4 w-4 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] font-mono">Consolidate Summary</span>
-                </motion.button>
-            </div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="relative bg-white/20 backdrop-blur-[60px] rounded-[4rem] p-12 md:p-20 border border-white/60 shadow-[0_80px_160px_-40px_rgba(74,78,105,0.15)] mb-16 overflow-hidden"
-            >
-                {/* Grain texture overlay */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
-
-                <div className="flex flex-col md:flex-row items-center gap-10 mb-20 relative z-10">
-                    <div className="p-8 bg-[#2D3142] rounded-[2.5rem] text-white shadow-2xl shadow-[#2D3142]/40 relative overflow-hidden group">
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50"
-                        />
-                        <MessageSquare size={48} className="relative z-10" />
-                    </div>
-                    <div className="text-center md:text-left">
-                        <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F9FBFF] rounded-full border border-[#7C9885]/20 mb-4"
-                        >
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#7C9885] animate-ping" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2D3142]">AI Synthesis Protocol</span>
-                        </motion.div>
-                        <h2 className="text-4xl md:text-6xl font-bold text-[#2D3142] tracking-tighter leading-none mb-3">Your Emotional <span className="text-[#7C9885]">Narrative.</span></h2>
-                        <p className="text-[#4A4E69]/40 text-[10px] font-bold uppercase tracking-[0.3em]">Precision Insights for Sustained Harmony</p>
-                    </div>
-                </div>
-
-                <div className="relative z-10 mb-24 max-w-4xl">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="prose prose-slate max-w-none"
+        <div className="w-full h-full flex flex-col justify-center items-center px-6">
+            <div className="w-full max-w-7xl">
+                <div className="mb-8">
+                    <motion.button
+                        whileHover={{ x: -4, backgroundColor: "rgba(255,255,255,0.7)" }}
+                        onClick={onBack}
+                        className="inline-flex items-center gap-3 text-[#4A4E69]/40 hover:text-[#2D3142] transition-all group p-2 px-6 rounded-full bg-white/30 backdrop-blur-md border border-white/40 shadow-sm"
                     >
-                        <p className="text-3xl md:text-4xl text-[#4A4E69] font-light leading-relaxed italic border-l-4 border-[#7C9885]/20 pl-10 py-4">
-                            "{analysis.summary}"
-                        </p>
-                    </motion.div>
+                        <ArrowLeft className="h-3 w-3 transition-transform" />
+                        <span className="text-[9px] font-bold uppercase tracking-[0.4em]">Back to Hub</span>
+                    </motion.button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
-                    <InsightCard
-                        title="Strategic Insights"
-                        icon={<Lightbulb size={24} />}
-                        items={analysis.insights}
-                        delay={0.6}
-                    />
-                    <InsightCard
-                        title="Mindful Protocol"
-                        icon={<ListChecks size={24} />}
-                        items={analysis.recommendations}
-                        delay={0.8}
-                    />
-                </div>
-            </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative bg-white/50 backdrop-blur-[60px] rounded-[3.5rem] p-8 md:p-12 border border-white/60 shadow-[0_40px_80px_-20px_rgba(74,78,105,0.1)] overflow-hidden max-h-[85vh] flex flex-col"
+                >
+                    <div className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
 
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.3 }}
-                transition={{ delay: 1.5 }}
-                className="max-w-3xl mx-auto flex items-center justify-center gap-4 text-center"
-            >
-                <div className="h-[1px] flex-1 bg-[#2D3142]/20" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.4em] font-mono text-[#2D3142]">Medical Disclaimer: AI Guidance Protocol 0.8.4</span>
-                <div className="h-[1px] flex-1 bg-[#2D3142]/20" />
-            </motion.div>
+                    <div className="flex flex-col md:flex-row items-center gap-8 mb-10 shrink-0">
+                        <div className="w-16 h-16 bg-[#2D3142] rounded-2xl flex items-center justify-center text-white shadow-xl">
+                            <MessageSquare size={32} />
+                        </div>
+                        <div className="text-center md:text-left">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F9FBFF] rounded-full border border-[#7C9885]/20 mb-2">
+                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#7C9885]">AI Intelligence Layer</span>
+                            </div>
+                            <h2 className="text-3xl md:text-5xl font-bold text-[#2D3142] tracking-tighter leading-tight">Your Mental <span className="text-[#7C9885]">Synthesis.</span></h2>
+                        </div>
+                    </div>
+
+                    <div className="overflow-y-auto pr-4 custom-scrollbar space-y-10">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="relative p-8 bg-white/30 rounded-3xl border border-white/60"
+                        >
+                            <p className="text-2xl md:text-3xl text-[#4A4E69] font-light leading-relaxed italic border-l-4 border-[#7C9885] pl-8 py-2">
+                                "{analysis.summary}"
+                            </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <InsightCard
+                                title="Synthesized Insights"
+                                icon={<Lightbulb size={20} />}
+                                items={analysis.insights}
+                                delay={0.6}
+                            />
+                            <InsightCard
+                                title="Proposed Protocol"
+                                icon={<ListChecks size={20} />}
+                                items={analysis.recommendations}
+                                delay={0.8}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-center gap-4 opacity-20 py-6">
+                            <div className="h-[1px] flex-1 bg-[#2D3142]/20" />
+                            <span className="text-[8px] font-bold uppercase tracking-[0.4em] font-mono text-[#2D3142]">Protocol 0.8.4 Fully Integrated</span>
+                            <div className="h-[1px] flex-1 bg-[#2D3142]/20" />
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
         </div>
     );
 };
