@@ -28,7 +28,7 @@ export const useAuth = () => {
             const userData = userSnapshot.data();
             setUser({
               uid: firebaseUser.uid,
-              role: role,
+              role: userData.role || role,
               name: userData.name || firebaseUser.displayName || firebaseUser.email,
               email: userData.email || firebaseUser.email,
               token: idToken,
@@ -60,12 +60,30 @@ export const useAuth = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      console.log("👤 User Debug Info:", {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        uid: user.uid
+      });
+    } else if (!loading) {
+      console.log("👤 User session: Logged out");
+    }
+  }, [user, loading]);
+
   const refreshToken = async () => {
     const auth = getAuth();
     if (auth.currentUser) {
       const tokenResult = await auth.currentUser.getIdTokenResult(true);
       const role = tokenResult.claims.role || 'student';
-      setUser(prev => prev ? { ...prev, role, token: tokenResult.token } : null);
+
+      // Also check Firestore for consistency
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      const finalRole = userDoc.exists() ? userDoc.data().role || role : role;
+
+      setUser(prev => prev ? { ...prev, role: finalRole, token: tokenResult.token } : null);
       return tokenResult.token;
     }
     return null;

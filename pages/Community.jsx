@@ -2,15 +2,29 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Heart, MessageCircle, Smile, Frown, Meh, Angry,
   Plus, Search, User, Send, Trash2, Edit, X, Check,
-  Sun, Moon, ThumbsUp, Bookmark, Share2, MoreHorizontal
+  Sun, Moon, ThumbsUp, Bookmark, Share2, MoreHorizontal, Sparkles
 } from "lucide-react";
 import {
   getFirestore,
   collection, query, orderBy, onSnapshot,
   addDoc, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove,
-  where, getDocs, setDoc, getDoc, deleteDoc
+  where, getDocs, setDoc, getDoc, deleteDoc, limit, startAfter
 } from 'firebase/firestore';
-import { auth, db } from '../context/firebase/firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import app, { storage } from '../context/firebase/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+import { loadSlim } from "tsparticles-slim";
+// import Particles from "../components/Particles.jsx";
+
+// Components
+import Post from '../components/Post';
+import CreatePostModal from '../components/CreatePostModal';
+import Sidebar from '../components/Sidebar';
+import SearchPanel from '../components/SearchPanel';
+
+const db = getFirestore(app);
+const auth = getAuth();
 
 const IncognitoGlasses = ({ className = "h-8 w-8" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -25,26 +39,27 @@ const IncognitoGlasses = ({ className = "h-8 w-8" }) => (
 export default function CommunityPage() {
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
-  const [newPostContent, setNewPostContent] = useState("");
-  const [selectedMood, setSelectedMood] = useState("neutral");
-  const [postAnonymously, setPostAnonymously] = useState(false);
   const [likedPosts, setLikedPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [showComments, setShowComments] = useState({});
-  const [newComment, setNewComment] = useState({});
+
   const [comments, setComments] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editedPostContent, setEditedPostContent] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
+  // Theme is locked to light mode as per requirements
+  const darkMode = false;
   const [reactions, setReactions] = useState({});
   const [showReactions, setShowReactions] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchPanelOpen, setSearchPanelOpen] = useState(true);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const POSTS_PER_PAGE = 5;
 
   const reactionTypes = {
     like: { icon: <ThumbsUp className="h-4 w-4" />, color: "text-blue-500" },
@@ -54,24 +69,6 @@ export default function CommunityPage() {
     angry: { icon: <Angry className="h-4 w-4" />, color: "text-red-600" }
   };
 
-  // Set system default mode on initial load
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setDarkMode(mediaQuery.matches);
-
-    const handleChange = (e) => setDarkMode(e.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
 
   // Get current user on component mount
   useEffect(() => {
@@ -114,32 +111,104 @@ export default function CommunityPage() {
     return () => unsubscribe();
   }, []);
 
-  // Load posts from Firestore
+  // Update online status
   useEffect(() => {
-    setIsLoading(true);
-    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+    if (!currentUser) return;
 
-    // Use onSnapshot for real-time updates
-    const unsubscribe = onSnapshot(q,
-      (querySnapshot) => {
-        const postsData = [];
-        querySnapshot.forEach((doc) => {
-          postsData.push({ id: doc.id, ...doc.data() });
+    const updateStatus = async () => {
+      try {
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+          lastActive: serverTimestamp(),
+          status: 'online'
         });
-        setPosts(postsData);
-        setIsLoading(false);
-      },
-      (error) => {
-        console.error("🔥 Firestore error in Community.jsx:", error);
-        setIsLoading(false);
-        if (error.code === 'permission-denied') {
-          console.warn("🚨 Permission denied. Are you logged in with the correct role?");
-        }
+      } catch (error) {
+        console.error("Error updating online status:", error);
       }
+    };
+
+    updateStatus();
+    const interval = setInterval(updateStatus, 120000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  // Load posts from Firestore with lazy loading
+  useEffect(() => {
+    if (currentUser) {
+      fetchInitialPosts();
+    }
+  }, [activeTab, currentUser]);
+
+  const fetchInitialPosts = async () => {
+    setIsLoading(true);
+    let q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(POSTS_PER_PAGE));
+
+    if (activeTab === "my-posts" && currentUser) {
+      q = query(collection(db, "posts"), where("userId", "==", currentUser.id), orderBy("timestamp", "desc"), limit(POSTS_PER_PAGE));
+    } else if (activeTab === "liked" && currentUser) {
+      // Logic for liked posts filter
+    }
+
+    try {
+      const querySnapshot = await getDocs(q);
+      const lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastVisible(lastVisibleDoc);
+      setHasMore(querySnapshot.docs.length === POSTS_PER_PAGE);
+
+      const postsData = [];
+      querySnapshot.forEach((doc) => {
+        postsData.push({ id: doc.id, ...doc.data() });
+      });
+      setPosts(postsData);
+    } catch (error) {
+      console.error("Error fetching initial posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadMorePosts = async () => {
+    if (!lastVisible || !hasMore) return;
+
+    setIsLoading(true);
+    let q = query(
+      collection(db, "posts"),
+      orderBy("timestamp", "desc"),
+      startAfter(lastVisible),
+      limit(POSTS_PER_PAGE)
     );
 
-    return () => unsubscribe();
-  }, []);
+    if (activeTab === "my-posts" && currentUser) {
+      q = query(
+        collection(db, "posts"),
+        where("userId", "==", currentUser.id),
+        orderBy("timestamp", "desc"),
+        startAfter(lastVisible),
+        limit(POSTS_PER_PAGE)
+      );
+    }
+
+    try {
+      const querySnapshot = await getDocs(q);
+      const lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+      setLastVisible(lastVisibleDoc);
+      setHasMore(querySnapshot.docs.length === POSTS_PER_PAGE);
+
+      const newPosts = [];
+      querySnapshot.forEach((doc) => {
+        newPosts.push({ id: doc.id, ...doc.data() });
+      });
+      setPosts(prev => [...prev, ...newPosts]);
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Rest of the functions...
+
 
   // Load reactions for posts
   useEffect(() => {
@@ -200,18 +269,29 @@ export default function CommunityPage() {
     return date.toDate().toLocaleDateString();
   };
 
-  const handlePostSubmit = async () => {
-    if (!newPostContent.trim() || !currentUser) return;
+  const handlePostSubmit = async (content, images, mood, anonymous) => {
+    if (!content.trim() || !currentUser) return;
 
     setIsLoading(true);
     try {
+      const imageUrls = [];
+      if (images && images.length > 0) {
+        for (const image of images) {
+          const storageRef = ref(storage, `posts/${currentUser.id}/${Date.now()}-${image.name}`);
+          await uploadBytes(storageRef, image);
+          const url = await getDownloadURL(storageRef);
+          imageUrls.push(url);
+        }
+      }
+
       await addDoc(collection(db, "posts"), {
-        username: postAnonymously ? "Anonymous" : currentUser.username,
-        userInitials: postAnonymously ? "A" : currentUser.initials,
-        anonymous: postAnonymously,
-        mood: selectedMood,
-        content: newPostContent,
-        tags: newPostContent.match(/#\w+/g) || [],
+        username: anonymous ? "Anonymous" : currentUser.username,
+        userInitials: anonymous ? "A" : currentUser.initials,
+        anonymous: anonymous,
+        mood: mood,
+        content: content,
+        tags: content.match(/#\w+/g) || [],
+        imageUrls: imageUrls,
         likes: 0,
         comments: 0,
         reactions: {},
@@ -219,10 +299,8 @@ export default function CommunityPage() {
         userId: currentUser.id
       });
 
-      setNewPostContent("");
-      setSelectedMood("neutral");
-      setPostAnonymously(false);
       setShowCreateModal(false);
+      fetchInitialPosts(); // Refresh posts
     } catch (error) {
       console.error("Error adding post: ", error);
     } finally {
@@ -230,62 +308,6 @@ export default function CommunityPage() {
     }
   };
 
-  /* 
-  const handlePostSubmit = async () => {
-  if (!newPostContent.trim() || !currentUser) return;
-
-  setIsLoading(true);
-  try {
-    // 🔹 Step 1: Call moderation API
-    const response = await fetch("http://127.0.0.1:8000/moderate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text: newPostContent }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to call moderation API");
-    }
-
-    const moderation = await response.json();
-
-    // 🔹 Step 2: Check moderation result
-    if (moderation.toxic) {
-      alert("⚠️ Your post seems toxic and cannot be submitted.");
-      return;
-    }
-
-    // 🔹 Step 3: Save to Firestore if safe
-    await addDoc(collection(db, "posts"), {
-      username: postAnonymously ? "Anonymous" : currentUser.username,
-      userInitials: postAnonymously ? "A" : currentUser.initials,
-      anonymous: postAnonymously,
-      mood: selectedMood,
-      content: newPostContent,
-      tags: newPostContent.match(/#\w+/g) || [],
-      likes: 0,
-      comments: 0,
-      reactions: {},
-      timestamp: serverTimestamp(),
-      userId: currentUser.id,
-      moderationLabels: moderation.labels, // store moderation scores for audit (optional)
-    });
-
-    // 🔹 Step 4: Reset UI state
-    setNewPostContent("");
-    setSelectedMood("neutral");
-    setPostAnonymously(false);
-    setShowCreateModal(false);
-  } catch (error) {
-    console.error("Error adding post: ", error);
-    alert("❌ Something went wrong while submitting your post.");
-  } finally {
-    setIsLoading(false);
-  }
-};
-  */
 
   const handleLike = async (postId) => {
     if (!currentUser) return;
@@ -293,10 +315,19 @@ export default function CommunityPage() {
     try {
       const postRef = doc(db, "posts", postId);
       const userRef = doc(db, "users", currentUser.id);
+      const isCurrentlyLiked = likedPosts.includes(postId);
 
-      if (likedPosts.includes(postId)) {
+      // Optimistic Local State Update
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === postId) {
+          return { ...p, likes: isCurrentlyLiked ? (p.likes - 1 || 0) : (p.likes + 1 || 1) };
+        }
+        return p;
+      }));
+
+      if (isCurrentlyLiked) {
         await updateDoc(postRef, {
-          likes: (posts.find(p => p.id === postId)?.likes - 1 || 0)
+          likes: increment(-1)
         });
         await updateDoc(userRef, {
           likedPosts: arrayRemove(postId)
@@ -304,7 +335,7 @@ export default function CommunityPage() {
         setLikedPosts(prev => prev.filter(id => id !== postId));
       } else {
         await updateDoc(postRef, {
-          likes: (posts.find(p => p.id === postId)?.likes + 1 || 1)
+          likes: increment(1)
         });
         await updateDoc(userRef, {
           likedPosts: arrayUnion(postId)
@@ -313,6 +344,8 @@ export default function CommunityPage() {
       }
     } catch (error) {
       console.error("Error updating like: ", error);
+      // Revert local state on error
+      fetchInitialPosts();
     }
   };
 
@@ -365,14 +398,17 @@ export default function CommunityPage() {
     }
   };
 
-  const handleCommentSubmit = async (postId) => {
-    if (!newComment[postId]?.trim() || !currentUser) return;
+  const handleCommentSubmit = async (postId, content, replyTo = null) => {
+    if (!content.trim() || !currentUser) return;
 
     try {
       await addDoc(collection(db, "posts", postId, "comments"), {
         userId: currentUser.id,
         username: currentUser.username,
-        content: newComment[postId],
+        userInitials: currentUser.initials,
+        content: content,
+        replyToId: replyTo ? replyTo.id : null,
+        replyToUsername: replyTo ? replyTo.username : null,
         timestamp: serverTimestamp()
       });
 
@@ -380,11 +416,11 @@ export default function CommunityPage() {
         comments: (posts.find(p => p.id === postId)?.comments || 0) + 1
       });
 
-      setNewComment(prev => ({ ...prev, [postId]: "" }));
     } catch (error) {
       console.error("Error adding comment: ", error);
     }
   };
+
 
   const handleReaction = async (postId, reactionType) => {
     if (!currentUser) return;
@@ -417,6 +453,11 @@ export default function CommunityPage() {
     setEditedPostContent(post.content);
   };
 
+  const handleEditChange = (content) => {
+    setEditedPostContent(content);
+  };
+
+
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditedPostContent("");
@@ -427,10 +468,21 @@ export default function CommunityPage() {
 
     try {
       const postRef = doc(db, "posts", editingPostId);
+      const tags = editedPostContent.match(/#\w+/g) || [];
+
       await updateDoc(postRef, {
         content: editedPostContent,
-        tags: editedPostContent.match(/#\w+/g) || []
+        tags: tags
       });
+
+      // Update local state
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === editingPostId) {
+          return { ...p, content: editedPostContent, tags: tags };
+        }
+        return p;
+      }));
+
       setEditingPostId(null);
       setEditedPostContent("");
     } catch (error) {
@@ -481,13 +533,13 @@ export default function CommunityPage() {
   };
 
   const getMoodIcon = (mood) => {
-    const icons = {
-      happy: <Smile className="h-4 w-4 text-emerald-500" />,
-      neutral: <Meh className="h-4 w-4 text-amber-500" />,
-      sad: <Frown className="h-4 w-4 text-blue-500" />,
-      angry: <Angry className="h-4 w-4 text-red-500" />
-    };
-    return icons[mood] || icons.neutral;
+    switch (mood) {
+      case 'happy': return <Smile className="h-4 w-4 text-emerald-500" />;
+      case 'neutral': return <Meh className="h-4 w-4 text-amber-500" />;
+      case 'sad': return <Frown className="h-4 w-4 text-blue-500" />;
+      case 'angry': return <Angry className="h-4 w-4 text-red-500" />;
+      default: return <Sparkles className="h-4 w-4 text-[#7C9885]" />;
+    }
   };
 
   const countReactions = (postId) => {
@@ -500,6 +552,7 @@ export default function CommunityPage() {
     return reactions[postId][currentUser.id];
   };
 
+
   const particlesInit = async (engine) => {
     await loadSlim(engine);
   };
@@ -508,9 +561,7 @@ export default function CommunityPage() {
     console.log("Particles container loaded", container);
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -521,8 +572,8 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className={`min-h-screen pt-30 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="flex h-[calc(100vh-6rem)] overflow-hidden">
+    <div className={`min-h-screen pt-32 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="flex h-screen overflow-hidden">
         {/* Sidebar and content here */}
         {/* Sidebar - Bookmarks and Navigation */}
         <Sidebar
@@ -533,93 +584,118 @@ export default function CommunityPage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           currentUser={currentUser}
-          darkMode={darkMode}
+          handleLogout={() => signOut(auth)}
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent hover:scrollbar-thumb-indigo-600">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
           {/* Header */}
-          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <button
-                  onClick={toggleSidebar}
-                  className="mr-4 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  <Bookmark className="h-5 w-5" />
-                </button>
-                <h1 className="text-xl font-bold">Community</h1>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span>New Post</span>
-                </button>
-                <button
-                  onClick={toggleSearchPanel}
-                  className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  <Search className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </header>
 
           {/* Main Content with Posts */}
-          <main className="flex-1 overflow-y-auto p-4">
-            <div className="max-w-2xl mx-auto space-y-6">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F9FBFF]">
+            <div className="max-w-3xl mx-auto space-y-8">
+              <div className="flex justify-between items-end mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold text-[#2D3142] mb-2">Hive Network</h2>
+                  <p className="text-[#4A4E69] font-light">Join 10k+ people finding strength together.</p>
+                </div>
+                <div className="flex items-center space-x-2 bg-white/50 backdrop-blur-md p-1 rounded-full border border-gray-100 shadow-sm">
+                  {['all', 'my-posts', 'liked', 'bookmarked'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === tab
+                        ? 'bg-[#7C9885] text-white shadow-md'
+                        : 'text-[#4A4E69] hover:bg-gray-100'
+                        }`}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Share your story card */}
+              {currentUser && activeTab === 'all' && (
+                <div
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.03)] flex items-center space-x-6 cursor-pointer hover:shadow-lg transition-all group active:scale-[0.98]"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-[#7C9885]/10 flex items-center justify-center text-[#7C9885] group-hover:scale-110 transition-transform">
+                    <Plus className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-lg font-light text-[#4A4E69]/60 italic">What's your story today, {currentUser.username.split(' ')[0]}?</p>
+                  </div>
+                  <div className="px-6 py-2 bg-[#F9FBFF] rounded-xl text-[10px] font-black text-[#7C9885] uppercase tracking-widest group-hover:bg-[#7C9885] group-hover:text-white transition-colors">
+                    Post Story
+                  </div>
+                </div>
+              )}
+
               {filteredPosts.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">
+                <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="h-8 w-8 text-gray-300" />
+                  </div>
+                  <p className="text-[#4A4E69] font-light">
                     {activeTab === "all"
                       ? "No posts yet. Be the first to share something!"
-                      : activeTab === "my-posts"
-                        ? "You haven't created any posts yet."
-                        : activeTab === "liked"
-                          ? "You haven't liked any posts yet."
-                          : "You haven't bookmarked any posts yet."}
+                      : "No posts found for this category."}
                   </p>
                 </div>
               ) : (
-                filteredPosts.map((post) => (
-                  <Post
-                    key={post.id}
-                    post={post}
-                    currentUser={currentUser}
-                    likedPosts={likedPosts}
-                    bookmarkedPosts={bookmarkedPosts}
-                    showComments={showComments}
-                    newComment={newComment}
-                    comments={comments}
-                    editingPostId={editingPostId}
-                    editedPostContent={editedPostContent}
-                    reactions={reactions}
-                    showReactions={showReactions}
-                    reactionTypes={reactionTypes}
-                    formatTimestamp={formatTimestamp}
-                    getMoodIcon={getMoodIcon}
-                    countReactions={countReactions}
-                    getUserReaction={getUserReaction}
-                    handleLike={handleLike}
-                    handleBookmark={handleBookmark}
-                    toggleComments={toggleComments}
-                    handleCommentSubmit={handleCommentSubmit}
-                    setNewComment={setNewComment}
-                    startEditingPost={startEditingPost}
-                    cancelEditing={cancelEditing}
-                    saveEditedPost={saveEditedPost}
-                    deletePost={deletePost}
-                    handleReaction={handleReaction}
-                    setShowReactions={setShowReactions}
-                  />
-                ))
+                <>
+                  <div className="grid gap-6">
+                    {filteredPosts.map((post) => (
+                      <Post
+                        key={post.id}
+                        post={post}
+                        currentUser={currentUser}
+                        likedPosts={likedPosts}
+                        bookmarkedPosts={bookmarkedPosts}
+                        showComments={showComments}
+                        comments={comments}
+                        editingPostId={editingPostId}
+                        editedPostContent={editedPostContent}
+                        reactions={reactions}
+                        showReactions={showReactions}
+                        reactionTypes={reactionTypes}
+                        formatTimestamp={formatTimestamp}
+                        getMoodIcon={getMoodIcon}
+                        countReactions={countReactions}
+                        getUserReaction={getUserReaction}
+                        handleLike={handleLike}
+                        handleBookmark={handleBookmark}
+                        toggleComments={toggleComments}
+                        handleCommentSubmit={handleCommentSubmit}
+                        startEditingPost={startEditingPost}
+                        cancelEditing={cancelEditing}
+                        saveEditedPost={saveEditedPost}
+                        deletePost={deletePost}
+                        handleReaction={handleReaction}
+                        setShowReactions={setShowReactions}
+                        handleEditChange={handleEditChange}
+                      />
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="text-center pt-8">
+                      <button
+                        onClick={loadMorePosts}
+                        disabled={isLoading}
+                        className="bg-white border border-[#7C9885]/20 text-[#7C9885] px-8 py-3 rounded-2xl text-sm font-bold hover:bg-[#7C9885] hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                      >
+                        {isLoading ? "Loading..." : "Load More Posts"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </main>
+
         </div>
 
         {/* Search Panel */}
@@ -628,7 +704,6 @@ export default function CommunityPage() {
           onToggle={toggleSearchPanel}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          darkMode={darkMode}
         />
       </div>
 
@@ -636,16 +711,10 @@ export default function CommunityPage() {
       <CreatePostModal
         show={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        newPostContent={newPostContent}
-        setNewPostContent={setNewPostContent}
-        selectedMood={selectedMood}
-        setSelectedMood={setSelectedMood}
-        postAnonymously={postAnonymously}
-        setPostAnonymously={setPostAnonymously}
         isLoading={isLoading}
         handlePostSubmit={handlePostSubmit}
-        darkMode={darkMode}
       />
+
     </div>
   );
 }

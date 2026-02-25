@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 
 function MyChats() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const userId = user?.uid;
   const userRole = user?.role;
   const college = user?.college;
+
+  const isProfessional = ['psychiatrist', 'doctor', 'company_doctor', 'admin', 'central_admin', 'overall_admin'].includes(userRole);
 
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -66,7 +68,7 @@ function MyChats() {
 
   // 2. Fetch Requests for Psychiatrists
   useEffect(() => {
-    if (userRole !== "psychiatrist" || !college) return;
+    if (!isProfessional || !college) return;
 
     const q = query(
       collection(db, "requests"),
@@ -83,7 +85,7 @@ function MyChats() {
 
   // 3. Fetch User's Own Request (For Students)
   useEffect(() => {
-    if (userRole === "psychiatrist" || !userId) return;
+    if (isProfessional || !userId) return;
 
     const q = query(
       collection(db, "requests"),
@@ -186,6 +188,14 @@ function MyChats() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-[#F9FBFF] pt-24 min-h-screen relative overflow-hidden">
       {/* Sidebar */}
@@ -202,7 +212,7 @@ function MyChats() {
           </div>
 
           {/* Tab Switcher for Psychiatrist */}
-          {userRole === 'psychiatrist' ? (
+          {isProfessional ? (
             <div className="flex p-1 bg-gray-100/50 rounded-2xl">
               <button
                 onClick={() => setViewMode('chats')}
@@ -271,8 +281,8 @@ function MyChats() {
                       key={chat.id}
                       onClick={() => handleChatSelect(otherUser, chat.id)}
                       className={`w-full p-4 flex items-center gap-4 rounded-3xl transition-all duration-300 relative group ${isActive
-                          ? 'bg-white shadow-xl shadow-indigo-100/50 border border-white translate-x-2'
-                          : 'hover:bg-white/40'
+                        ? 'bg-white shadow-xl shadow-indigo-100/50 border border-white translate-x-2'
+                        : 'hover:bg-white/40'
                         }`}
                     >
                       <div className={`w-12 h-12 rounded-2xl ${getAvatarColors(otherUser)} flex items-center justify-center font-bold text-white shadow-lg transition-transform group-hover:scale-110`}>

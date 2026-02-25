@@ -1,58 +1,33 @@
 import React, { useState } from 'react';
-import { 
-  Search, X, Filter, Hash, Calendar, User, TrendingUp, 
-  Clock, ChevronRight, ChevronLeft, Zap, Target
+import {
+  Search, X, Hash, User, TrendingUp,
+  Clock, ChevronRight, ChevronLeft, Zap, Target, Sparkles
 } from 'lucide-react';
 
 const SearchPanel = ({
   open,
   onToggle,
   searchTerm,
-  setSearchTerm,
-  darkMode
+  setSearchTerm
 }) => {
   const [filterType, setFilterType] = useState('all');
-  const [searchHistory, setSearchHistory] = useState(['#mentalhealth', '#motivation', '#productivity']);
+  const [searchHistory, setSearchHistory] = useState(['#mindfulness', '#recovery', '#hope']);
 
   const filters = [
-    { id: 'all', label: 'All', icon: <Search className="h-4 w-4" /> },
-    { id: 'hashtags', label: 'Hashtags', icon: <Hash className="h-4 w-4" /> },
-    { id: 'users', label: 'Users', icon: <User className="h-4 w-4" /> },
-    { id: 'recent', label: 'Recent', icon: <Clock className="h-4 w-4" /> }
+    { id: 'all', label: 'All', icon: <Target className="h-4 w-4" /> },
+    { id: 'hashtags', label: 'Hash', icon: <Hash className="h-4 w-4" /> },
+    { id: 'users', label: 'Soul', icon: <User className="h-4 w-4" /> }
   ];
 
   const trendingTopics = [
-    { tag: '#mentalhealth', count: 42, growth: '+12%' },
-    { tag: '#motivation', count: 38, growth: '+8%' },
-    { tag: '#productivity', count: 29, growth: '+15%' },
-    { tag: '#wellness', count: 24, growth: '+5%' },
-    { tag: '#support', count: 19, growth: '+22%' }
+    { tag: '#healing', count: "1.2k", growth: '+42%' },
+    { tag: '#gratitude', count: "850", growth: '+15%' },
+    { tag: '#strength', count: "620", growth: '+8%' },
+    { tag: '#innerpeace', count: "540", growth: '+22%' }
   ];
-
-  const suggestedSearches = [
-    'How to stay motivated',
-    'Dealing with anxiety',
-    'Work-life balance tips',
-    'Mental health resources',
-    'Productivity hacks'
-  ];
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      // Add to search history if not already present
-      if (!searchHistory.includes(searchTerm)) {
-        setSearchHistory(prev => [searchTerm, ...prev].slice(0, 5));
-      }
-    }
-  };
 
   const handleClearSearch = () => {
     setSearchTerm('');
-  };
-
-  const handleSuggestedSearch = (suggestion) => {
-    setSearchTerm(suggestion);
   };
 
   const handleTrendingClick = (tag) => {
@@ -60,180 +35,125 @@ const SearchPanel = ({
   };
 
   return (
-    <div className={`${open ? 'w-80' : 'w-16'} bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300`}>
-      {/* Search Panel Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className={`${open ? 'w-[22rem]' : 'w-20'} bg-white border-l border-gray-50 flex flex-col transition-all duration-500 ease-in-out z-40 relative shadow-[-10px_0_40px_-15px_rgba(0,0,0,0.03)]`}>
+      {/* Header */}
+      <div className="p-8 pb-6 flex items-center justify-between bg-[#2D3142] rounded-bl-[3rem]">
         {open && (
-          <div className="flex items-center space-x-2">
-            <Search className="h-6 w-6 text-blue-500" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Search
-            </h2>
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/10 p-2 rounded-xl">
+              <Search className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Explorer</h2>
           </div>
         )}
         <button
           onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+          className={`p-3 rounded-2xl transition-all ${open ? 'bg-white/10 text-white' : 'mx-auto text-[#4A4E69]/40 hover:text-[#2D3142]'}`}
         >
           {open ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Search Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent hover:scrollbar-thumb-indigo-600">
-    
+      {/* Content */}
+      <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent ${open ? 'px-8 pb-8 opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
         {open && (
-          <>
+          <div className="space-y-10">
             {/* Search Input */}
-            <div className="p-4 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="space-y-6">
+              <div className="relative group">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#4A4E69]/30 group-focus-within:text-[#7C9885] transition-colors" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search posts, hashtags, users..."
-                  className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  placeholder="Find stories, souls, tags..."
+                  className="w-full pl-14 pr-12 py-4 bg-[#F9FBFF] border-none rounded-[1.5rem] focus:ring-2 focus:ring-[#7C9885] outline-none text-[#2D3142] text-sm placeholder:text-[#4A4E69]/30 font-medium transition-all shadow-sm"
                 />
                 {searchTerm && (
-                  <button
-                    onClick={handleClearSearch}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
+                  <button onClick={handleClearSearch} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4A4E69]/30 hover:text-red-400">
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
 
-              {/* Search Filters */}
-              <div className="flex flex-wrap gap-2">
-                {filters.map((filter) => (
+              {/* Filters */}
+              <div className="flex justify-between bg-gray-50/50 p-1 rounded-2xl border border-gray-50">
+                {filters.map((f) => (
                   <button
-                    key={filter.id}
-                    onClick={() => setFilterType(filter.id)}
-                    className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm transition ${
-                      filterType === filter.id
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                    key={f.id}
+                    onClick={() => setFilterType(f.id)}
+                    className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all ${filterType === f.id
+                      ? 'bg-white text-[#7C9885] shadow-sm'
+                      : 'text-[#4A4E69]/40 hover:text-[#4A4E69]'
+                      }`}
                   >
-                    {filter.icon}
-                    <span>{filter.label}</span>
+                    {f.icon}
+                    <span>{f.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Search Results or Default Content */}
-            {searchTerm ? (
-              <div className="px-4 pb-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Searching for: <span className="font-medium">"{searchTerm}"</span>
+            {/* Trending */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 text-[#2D3142]">
+                  <TrendingUp className="h-5 w-5 text-emerald-400" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest">Trending Now</h3>
                 </div>
-                <div className="text-center py-8">
-                  <Target className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Search results will appear here
-                  </p>
-                </div>
+                <div className="h-[1px] flex-1 bg-gray-50 ml-4"></div>
               </div>
-            ) : (
-              <>
-                {/* Trending Topics */}
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Trending Topics
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {trendingTopics.map((topic, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleTrendingClick(topic.tag)}
-                        className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {topic.tag}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {topic.count} posts
-                          </span>
-                        </div>
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                          {topic.growth}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Search History */}
-                {searchHistory.length > 0 && (
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <Clock className="h-5 w-5 text-gray-500" />
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Recent Searches
-                      </h3>
+              <div className="space-y-3">
+                {trendingTopics.map((topic, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleTrendingClick(topic.tag)}
+                    className="w-full flex items-center justify-between p-4 bg-[#F9FBFF] rounded-[1.5rem] hover:bg-[#7C9885]/5 border border-transparent hover:border-[#7C9885]/10 transition-all group"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#7C9885] font-bold text-xs shadow-sm group-hover:scale-110 transition-transform">
+                        #{i + 1}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-[#2D3142]">{topic.tag}</p>
+                        <p className="text-[10px] font-bold text-[#4A4E69]/40 uppercase">{topic.count} stories</p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      {searchHistory.map((term, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setSearchTerm(term)}
-                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                        >
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {term}
-                          </span>
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-50 px-2 py-1 rounded-lg">
+                      {topic.growth}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                {/* Suggested Searches */}
-                <div className="p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Zap className="h-5 w-5 text-yellow-500" />
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Suggested Searches
-                    </h3>
-                  </div>
-                  <div className="space-y-1">
-                    {suggestedSearches.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestedSearch(suggestion)}
-                        className="w-full text-left p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                      >
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {suggestion}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {/* History */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3 text-[#2D3142]">
+                <Clock className="h-5 w-5 text-[#4A4E69]/30" />
+                <h3 className="text-sm font-bold uppercase tracking-widest text-[#4A4E69]/40">Recent</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.map((h, i) => (
+                  <button key={i} onClick={() => setSearchTerm(h)} className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold text-[#4A4E69] hover:border-[#7C9885] hover:text-[#7C9885] transition-all shadow-sm">
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                {/* Search Tips */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 m-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
-                    Search Tips
-                  </h4>
-                  <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                    <li>• Use #hashtags to find specific topics</li>
-                    <li>• Search for @username to find user posts</li>
-                    <li>• Use quotes for exact phrases</li>
-                    <li>• Try different keywords for better results</li>
-                  </ul>
-                </div>
-              </>
-            )}
-          </>
+            {/* Insight Card */}
+            <div className="bg-gradient-to-br from-[#4A4E69] to-[#2D3142] p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+              <Sparkles className="absolute -right-4 -top-4 h-24 w-24 text-white/5 rotate-12" />
+              <h4 className="font-bold mb-2 relative z-10 flex items-center">
+                <Zap className="h-4 w-4 mr-2 text-amber-400 fill-amber-400" />
+                Mindful Search
+              </h4>
+              <p className="text-xs text-white/60 leading-relaxed relative z-10">
+                Discovering someone else's story can often help you write your own. Search with empathy and find your tribe.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -367,7 +367,7 @@ const AdminReportsSystem = () => {
       <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-black to-blue-900 opacity-50"></div>
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(6,182,212,0.1),transparent_50%)]"></div>
 
-      <div className="relative z-10 p-8 pt-24">
+      <div className="relative z-10 p-8 pt-32">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-2">
