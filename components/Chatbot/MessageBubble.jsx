@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode }) => {
+const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode, jsxContent }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const words = message.split(' ');
+  const words = message ? message.split(' ') : [];
 
   useEffect(() => {
     if (currentWordIndex < words.length) {
@@ -28,41 +28,45 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode 
             : 'bg-white border border-gray-200 text-gray-900'
           }`}
       >
-        <div className="overflow-y-auto break-words whitespace-pre-wrap">
-          <ReactMarkdown
-            components={{
-              p: ({ children }) => (
-                <p className={`text-sm ${isUser ? 'text-white' : darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {children}
-                </p>
-              ),
-              code: ({ inline, className, children, ...props }) => {
-                const baseStyle = darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800';
-                return inline ? (
-                  <code className={`${baseStyle} px-1 py-0.5 rounded text-xs ${className || ''}`} {...props}>
+        {jsxContent ? (
+          jsxContent
+        ) : (
+          <div className="overflow-y-auto break-words whitespace-pre-wrap">
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => (
+                  <p className={`text-sm ${isUser ? 'text-white' : darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                     {children}
-                  </code>
-                ) : (
-                  <pre className={`${baseStyle} text-sm p-2 rounded my-2 overflow-x-auto`} {...props}>
-                    <code>{children}</code>
-                  </pre>
-                );
-              },
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                >
-                  {children}
-                </a>
-              )
-            }}
-          >
-            {visibleMessage}
-          </ReactMarkdown>
-        </div>
+                  </p>
+                ),
+                code: ({ inline, className, children, ...props }) => {
+                  const baseStyle = darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800';
+                  return inline ? (
+                    <code className={`${baseStyle} px-1 py-0.5 rounded text-xs ${className || ''}`} {...props}>
+                      {children}
+                    </code>
+                  ) : (
+                    <pre className={`${baseStyle} text-sm p-2 rounded my-2 overflow-x-auto`} {...props}>
+                      <code>{children}</code>
+                    </pre>
+                  );
+                },
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    {children}
+                  </a>
+                )
+              }}
+            >
+              {visibleMessage}
+            </ReactMarkdown>
+          </div>
+        )}
 
         {timestamp && (
           <p className={`text-xs mt-1 ${isUser
@@ -73,7 +77,7 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode 
           </p>
         )}
 
-        {!isUser && videoSuggestions.length > 0 && currentWordIndex === words.length && (
+        {!isUser && videoSuggestions && videoSuggestions.length > 0 && currentWordIndex === words.length && (
           <div className="mt-3">
             <h4 className="text-sm font-semibold mb-2">🎥 Suggested by Videos :</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
