@@ -8,8 +8,8 @@ const SessionList = ({ sessions, onSelectSession, onDeleteSession, searchTerm, i
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center py-8">
-                <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${darkMode ? 'border-blue-400' : 'border-blue-500'
+            <div className="flex items-center justify-center py-10">
+                <div className={`animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 ${darkMode ? 'border-blue-400' : 'border-[#7C9885]'
                     }`}></div>
             </div>
         );
@@ -17,44 +17,55 @@ const SessionList = ({ sessions, onSelectSession, onDeleteSession, searchTerm, i
 
     if (filteredSessions.length === 0) {
         return (
-            <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'
+            <div className={`text-center py-10 ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/50'
                 }`}>
-                <p className="text-sm">No conversations found</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest">No conversations found</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
             {filteredSessions.map((session) => (
                 <div
                     key={session.sessionRef}
                     onClick={() => onSelectSession(session.sessionRef)}
-                    className={`p-4 rounded-lg cursor-pointer transition-colors ${darkMode
-                            ? 'border-white hover:bg-gray-700 border-color-white'
-                            : 'border border-gray-200 hover:bg-white-50 border-color-gray-200'
-                        } flex`}
+                    className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 group ${darkMode
+                        ? 'border-gray-700 hover:bg-gray-700 bg-gray-800/50'
+                        : 'bg-white border border-transparent hover:border-[#7C9885]/20'
+                        } flex items-start gap-3 shadow-sm hover:shadow-md`}
                 >
                     <div className='overflow-hidden flex-1'>
-                        <h3 className={`text-sm font-medium truncate ${darkMode ? 'text-gray-200' : 'text-gray-900'
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                            <h3 className={`text-[13px] font-bold truncate ${darkMode ? 'text-gray-100' : 'text-[#2D3142] group-hover:text-[#7C9885] transition-colors'
+                                }`}>
+                                {session.title || (session.createdAt ? new Date(session.createdAt).toLocaleDateString() : 'Untitled Chat')}
+                            </h3>
+                            {session.createdAt && (
+                                <span className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap pt-0.5 ${darkMode ? 'text-gray-500' : 'text-[#4A4E69]/40'}`}>
+                                    {new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
+                        </div>
+                        <p className={`text-[11px] leading-relaxed truncate font-medium ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/60'
                             }`}>
-                            {session.title || 'Untitled Conversation'}
-                        </h3>
-                        <p className={`text-xs mt-1 truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'
-                            }`}>
-                            {session.lastMessage || 'No messages'}
+                            {session.lastMessage || 'No messages yet...'}
                         </p>
                     </div>
-                    <div>
-                        <Trash2
-                            size={16}
-                            className={`mt-2 cursor-pointer ${darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-500 hover:text-red-700'
-                                }`}
+                    <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div
+                            className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onDeleteSession(session.sessionRef);
                             }}
-                        />
+                        >
+                            <Trash2
+                                size={14}
+                                className={`${darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-400 hover:text-red-500'
+                                    }`}
+                            />
+                        </div>
                     </div>
                 </div>
             ))}

@@ -1,22 +1,45 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../context/firebase/firebase";
-import { collection, query, where, onSnapshot, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, getDoc, setDoc, addDoc } from "firebase/firestore";
 import ChatRoom from "./ChatRoom";
+import { useAuth } from "../src/hooks/useAuth";
+import { API_BASE_URL } from "../src/utils/api";
+import {
+  MessageSquare, Users, Clock, Send, CheckCircle,
+  XCircle, Brain, Plus, AlertCircle, ChevronLeft, ChevronRight
+} from "lucide-react";
 
-function MyChats({ userId }) {
+function MyChats() {
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.uid;
+  const userRole = user?.role;
+  const college = user?.college;
+
+  const isProfessional = ['psychiatrist', 'doctor', 'company_doctor', 'admin', 'central_admin', 'overall_admin'].includes(userRole);
+
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Request states
+  const [requests, setRequests] = useState([]); // For Psychiatrists
+  const [myRequest, setMyRequest] = useState(null); // For Students
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestReason, setRequestReason] = useState("");
+  const [viewMode, setViewMode] = useState("chats"); // 'chats' or 'requests'
+  const [actionLoading, setActionLoading] = useState(null);
+  const [participants, setParticipants] = useState({}); // UID -> { name, role }
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // 1. Fetch Chats (Shared)
   useEffect(() => {
     if (!userId) return;
-    
+
     const qSender = query(collection(db, "chats"), where("senderId", "==", userId));
     const qReceiver = query(collection(db, "chats"), where("receiverId", "==", userId));
 
     const merge = (docs) => docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // Combine both queries into a single state update to avoid race conditions
     let senderChats = [];
     let receiverChats = [];
 
@@ -45,74 +68,146 @@ function MyChats({ userId }) {
     };
   }, [userId]);
 
-  // Function to find or create a chat
-  const findOrCreateChat = async (otherUserId) => {
-    // First, check if a chat already exists between these users
-    const existingChat = chats.find(chat => 
-      (chat.senderId === userId && chat.receiverId === otherUserId) ||
-      (chat.senderId === otherUserId && chat.receiverId === userId)
+  // 2. Fetch Requests for Psychiatrists
+  useEffect(() => {
+    if (!isProfessional) return;
+
+    // Broadcast: Psychiatrists see all pending requests globally
+    const q = query(
+      collection(db, "requests"),
+      where("status", "==", "pending")
     );
 
-    if (existingChat) {
-      return existingChat;
-    }
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
 
-    // If no chat exists, create a new one
+    return () => unsubscribe();
+  }, [userRole]);
+
+  // 3. Fetch User's Own Request (For Students)
+  useEffect(() => {
+    if (isProfessional || !userId) return;
+
+    const q = query(
+      collection(db, "requests"),
+      where("studentId", "==", userId)
+    );
+
+    const unsubscribe = onSnapshot(q, (snap) => {
+      // Get the most recent request
+      const reqs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const latest = reqs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+      setMyRequest(latest || null);
+    });
+
+    return () => unsubscribe();
+  }, [userId, userRole]);
+
+  // 4. Resolve Participant Details (Names/Roles)
+  useEffect(() => {
+    if (chats.length === 0) return;
+
+    const fetchMissing = async () => {
+      const otherUserIds = [...new Set(chats.map(c => c.senderId === userId ? c.receiverId : c.senderId))];
+      const missingIds = otherUserIds.filter(id => !participants[id]);
+
+      if (missingIds.length === 0) return;
+
+      const newDetails = { ...participants };
+      let updated = false;
+
+      await Promise.all(missingIds.map(async (id) => {
+        // Mark as "fetching" with placeholder to avoid redundant parallel calls
+        newDetails[id] = { name: "...", role: "unknown", loading: true };
+        updated = true;
+
+        try {
+          const docSnap = await getDoc(doc(db, "users", id));
+          if (docSnap.exists()) {
+            newDetails[id] = {
+              name: docSnap.data().name || "Unknown User",
+              role: docSnap.data().role || "student",
+              loading: false
+            };
+          } else {
+            newDetails[id] = { name: "MindWell User", role: "unknown", loading: false };
+          }
+        } catch (err) {
+          console.warn("Failed to fetch user info:", id);
+          newDetails[id] = { name: "User", role: "unknown", loading: false };
+        }
+      }));
+
+      if (updated) {
+        setParticipants(prev => ({ ...prev, ...newDetails }));
+      }
+    };
+
+    fetchMissing();
+  }, [chats, userId]); // Removed participants from deps to prevent loops
+
+  const handleRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestReason.trim()) return;
+
+    setLoading(true);
     try {
-      const newChatRef = doc(collection(db, "chats"));
-      const newChatData = {
-        senderId: userId,
-        receiverId: otherUserId,
-        lastMessage: "",
-        lastMessageAt: new Date(),
-        createdAt: new Date()
-      };
-      
-      await setDoc(newChatRef, newChatData);
-      
-      const newChat = {
-        id: newChatRef.id,
-        ...newChatData
-      };
-
-      // Optimistically update the chats state
-      setChats(prevChats => {
-        const exists = prevChats.some(chat => chat.id === newChat.id);
-        return exists ? prevChats : [...prevChats, newChat];
+      const res = await fetch(`${API_BASE_URL}/api/request/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: userId,
+          college: college,
+          message: requestReason,
+        }),
       });
 
-      return newChat;
-    } catch (error) {
-      console.error("Error creating chat:", error);
-      return null;
+      if (res.ok) {
+        setShowRequestForm(false);
+        setRequestReason("");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to send request");
+      }
+    } catch (err) {
+      alert("Error sending request");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleChatSelect = async (otherUserId) => {
+  const handleRequestAction = async (requestId, action) => {
+    if (!userId) return;
+    setActionLoading(requestId);
     try {
-      const chat = await findOrCreateChat(otherUserId);
-      if (chat) {
-        setSelectedChat({
-          id: chat.id,
-          otherUserId: otherUserId,
-          senderId: chat.senderId,
-          receiverId: chat.receiverId
-        });
+      const res = await fetch(`${API_BASE_URL}/api/request/respond-atomic/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ psychiatristId: userId, action }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to respond');
       }
-    } catch (error) {
-      console.error("Error selecting chat:", error);
+
+      if (action === 'accept') {
+        setViewMode('chats');
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  // Clear selected chat if it's no longer in the chats list
-  useEffect(() => {
-    if (selectedChat && chats.length > 0) {
-      const chatExists = chats.some(chat => chat.id === selectedChat.id);
-      if (!chatExists) {
-        setSelectedChat(null);
-      }
-    }
-  }, [chats, selectedChat]);
+  const handleChatSelect = (otherUserId, chatId) => {
+    setSelectedChat({ id: chatId, otherUserId });
+  };
 
   const sortedChats = useMemo(() => {
     const getTime = (v) => {
@@ -123,170 +218,342 @@ function MyChats({ userId }) {
     return [...chats].sort((a, b) => getTime(b.lastMessageAt) - getTime(a.lastMessageAt));
   }, [chats]);
 
-  const formatTime = (v) => {
-    if (!v) return '';
-    const d = typeof v?.toDate === 'function' ? v.toDate() : new Date(v);
-    const now = new Date();
-    const diff = now - d;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
-      return 'Yesterday';
-    } else if (days < 7) {
-      return d.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  };
-
-  const getAvatarColors = (userId) => {
+  const getAvatarColors = (id) => {
     const colors = [
-      'bg-gradient-to-br from-violet-500 to-purple-600',
-      'bg-gradient-to-br from-blue-500 to-indigo-600',
-      'bg-gradient-to-br from-emerald-500 to-teal-600',
-      'bg-gradient-to-br from-amber-500 to-orange-600',
-      'bg-gradient-to-br from-rose-500 to-pink-600',
-      'bg-gradient-to-br from-cyan-500 to-blue-600',
+      'bg-indigo-500', 'bg-purple-500', 'bg-emerald-500',
+      'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'
     ];
-    const hash = userId?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
+    const hash = id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 0;
     return colors[hash % colors.length];
   };
 
+  const formatTime = (v) => {
+    if (!v) return '';
+    const d = typeof v?.toDate === 'function' ? v.toDate() : new Date(v);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-24 min-h-[calc(100vh-96px)] relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/20 via-transparent to-purple-100/20"></div>
-      
+    <div className="flex bg-[#F9FBFF] pt-24 min-h-screen relative overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-full md:w-80 border-r border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-lg shadow-slate-200/50 relative z-10">
-        {/* Header */}
-        <div className="p-6 border-b border-slate-200/60 bg-gradient-to-r from-slate-50/50 to-white/50">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <h2 className="font-bold text-xl text-slate-800">Conversations</h2>
+      <aside className={`border-r border-gray-100 bg-white/70 backdrop-blur-2xl shadow-xl relative z-20 flex flex-col transition-all duration-500 ease-in-out ${selectedChat ? 'hidden md:flex' : 'flex'} ${sidebarCollapsed ? 'w-24' : 'w-full md:w-96'}`}>
+        {/* User Info & Toggle */}
+        <div className="p-6 border-b border-gray-50 bg-white/40">
+          <div className="flex items-center justify-between mb-6">
+            {!sidebarCollapsed && (
+              <h2 className="text-2xl font-black text-[#2D3142] tracking-tight flex items-center gap-3">
+                <div className="p-2 bg-[#2D3142] rounded-xl text-white">
+                  <Brain className="w-5 h-5" />
+                </div>
+                Sanctuary
+              </h2>
+            )}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-2 rounded-xl transition-all ${sidebarCollapsed ? 'mx-auto bg-[#2D3142] text-white' : 'text-[#4A4E69]/40 hover:text-[#2D3142] hover:bg-gray-100'}`}
+              title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <ChevronLeft className={`w-5 h-5 transition-transform duration-500 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+            </button>
           </div>
-        </div>
 
-        {/* Chat List */}
-        <div className="overflow-y-auto h-[calc(100vh-180px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-          {loading && (
-            <div className="p-6 flex flex-col items-center justify-center space-y-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
-              <p className="text-slate-500 text-sm font-medium">Loading conversations...</p>
-            </div>
-          )}
-          
-          {!loading && sortedChats.length === 0 && (
-            <div className="p-6 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center">
-                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-2-2V10a2 2 0 012-2h2m2-4h6a2 2 0 012 2v6a2 2 0 01-2 2h-6m0-8V4a2 2 0 012-2h4a2 2 0 012 2v4m0 0v8a2 2 0 01-2 2H9l-4 4v-4H3a2 2 0 01-2-2V8a2 2 0 012-2h2" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-slate-600 font-medium">No conversations yet</p>
-                <p className="text-slate-400 text-sm">Start a new chat to begin messaging</p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-1 p-2">
-            {sortedChats.map((chat, index) => {
-              const otherUser = chat.senderId === userId ? chat.receiverId : chat.senderId;
-              const isActive = selectedChat?.id === chat.id;
-              
-              return (
+          {/* Tab Switcher / Support Button (Expanded) */}
+          {!sidebarCollapsed && (
+            isProfessional ? (
+              <div className="flex p-1 bg-gray-100/50 rounded-2xl">
                 <button
-                  key={chat.id}
-                  onClick={() => handleChatSelect(otherUser)}
-                  className={`w-full text-left p-4 flex items-center gap-4 rounded-xl transition-all duration-200 group relative overflow-hidden ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 shadow-md border border-indigo-200/50 transform scale-[1.02]' 
-                      : 'hover:bg-white/60 hover:shadow-sm hover:scale-[1.01]'
-                  }`}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => setViewMode('chats')}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.1em] transition-all ${viewMode === 'chats' ? 'bg-white shadow-md text-[#2D3142]' : 'text-[#4A4E69]/50 hover:text-[#4A4E69]'}`}
                 >
-                  {/* Avatar */}
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-full ${getAvatarColors(otherUser)} flex items-center justify-center font-bold text-white shadow-lg ring-2 ring-white transition-transform group-hover:scale-110`}>
-                    {String(otherUser || '?').charAt(0).toUpperCase()}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className={`font-semibold truncate ${isActive ? 'text-slate-800' : 'text-slate-700'}`}>
-                        {otherUser}
-                      </p>
-                      <div className="text-right flex-shrink-0 ml-2">
-                        <span className={`text-xs font-medium block ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>
-                          {formatTime(chat.lastMessageAt)}
-                        </span>
-                      </div>
+                  Chats
+                </button>
+                <button
+                  onClick={() => setViewMode('requests')}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.1em] transition-all flex items-center justify-center gap-2 ${viewMode === 'requests' ? 'bg-white shadow-md text-[#2D3142]' : 'text-[#4A4E69]/50 hover:text-[#4A4E69]'}`}
+                >
+                  Requests {requests.length > 0 && `(${requests.length})`}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {!myRequest || myRequest.status === 'rejected' ? (
+                  <button
+                    onClick={() => setShowRequestForm(true)}
+                    className="w-full py-3.5 bg-[#2D3142] text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-lg hover:bg-[#4A4E69] transition-all flex items-center justify-center gap-3"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Request Support
+                  </button>
+                ) : (
+                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-indigo-700">Support Status</span>
                     </div>
-                    <p className={`text-sm truncate ${isActive ? 'text-slate-600' : 'text-slate-500'}`}>
-                      {chat.lastMessage || 'Start a new conversation...'}
+                    <p className="text-xs text-indigo-900 font-medium truncate">
+                      {myRequest.status === 'pending' ? 'Request Pending...' : 'Secure Connection Active'}
                     </p>
                   </div>
+                )}
+              </div>
+            )
+          )}
 
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-indigo-500 shadow-sm"></div>
-                  )}
+          {/* Collapsed Icons */}
+          {sidebarCollapsed && (
+            <div className="flex flex-col gap-4 items-center">
+              {isProfessional ? (
+                <>
+                  <button
+                    onClick={() => setViewMode('chats')}
+                    className={`p-3 rounded-xl transition-all ${viewMode === 'chats' ? 'bg-[#2D3142] text-white shadow-lg' : 'text-[#4A4E69]/30 hover:bg-gray-100'}`}
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('requests')}
+                    className={`p-3 rounded-xl transition-all relative ${viewMode === 'requests' ? 'bg-[#2D3142] text-white shadow-lg' : 'text-[#4A4E69]/30 hover:bg-gray-100'}`}
+                  >
+                    <Users className="w-5 h-5" />
+                    {requests.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                        {requests.length}
+                      </span>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowRequestForm(true)}
+                  className="p-3 bg-[#2D3142] text-white rounded-xl shadow-lg hover:bg-[#4A4E69] transition-all"
+                >
+                  <Plus className="w-5 h-5" />
                 </button>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* List Content */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
+          {viewMode === 'chats' ? (
+            <div className="space-y-2">
+              {loading ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-4 opacity-40">
+                  <div className="w-10 h-10 border-4 border-[#2D3142] border-t-transparent rounded-full animate-spin" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Synchronizing...</p>
+                </div>
+              ) : sortedChats.length === 0 ? (
+                <div className="py-20 text-center px-8">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <MessageSquare className="w-6 h-6 text-gray-200" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#2D3142] mb-2 tracking-tight">No Active Sanctuary</h3>
+                  {!sidebarCollapsed && (
+                    <p className="text-xs text-[#4A4E69]/40 leading-relaxed font-light font-sans">
+                      Your professional connections will appear here. Try requesting support if you haven't already.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                sortedChats.map((chat) => {
+                  const otherUser = chat.senderId === userId ? chat.receiverId : chat.senderId;
+                  const isActive = selectedChat?.id === chat.id;
+
+                  return (
+                    <button
+                      key={chat.id}
+                      onClick={() => handleChatSelect(otherUser, chat.id)}
+                      className={`w-full p-4 flex items-center gap-4 rounded-3xl transition-all duration-300 relative group ${isActive
+                        ? 'bg-white shadow-xl shadow-indigo-100/50 border border-white translate-x-1'
+                        : 'hover:bg-white/40'
+                        } ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
+                    >
+                      <div className={`w-12 h-12 rounded-2xl ${getAvatarColors(otherUser)} flex items-center justify-center font-bold text-white shadow-lg transition-transform group-hover:scale-110 shrink-0`}>
+                        {(participants[otherUser]?.name || "U").charAt(0).toUpperCase()}
+                      </div>
+                      {!sidebarCollapsed && (
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p className={`font-bold truncate text-[13px] ${isActive ? 'text-[#2D3142]' : 'text-[#4A4E69]'}`}>
+                                {(() => {
+                                  const p = participants[otherUser];
+                                  if (!p || p.loading) return "Securing...";
+                                  const isDoc = ['psychiatrist', 'doctor', 'company_doctor'].includes(p.role);
+                                  return isDoc ? `Doc. ${p.name}` : p.name;
+                                })()}
+                              </p>
+                            </div>
+                            <span className="text-[9px] font-bold text-[#4A4E69]/30 uppercase tracking-tighter shrink-0">
+                              {formatTime(chat.lastMessageAt)}
+                            </span>
+                          </div>
+                          <p className={`text-[11px] truncate ${isActive ? 'text-[#4A4E69]' : 'text-[#4A4E69]/40'}`}>
+                            {chat.lastMessage || 'Begin transmission...'}
+                          </p>
+                        </div>
+                      )}
+
+                      {sidebarCollapsed && isActive && (
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#2D3142] rounded-l-full" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requests.length === 0 ? (
+                <div className="py-20 text-center px-8">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-6 h-6 text-gray-200" />
+                  </div>
+                  {!sidebarCollapsed && <p className="text-[10px] font-bold text-[#4A4E69]/40 uppercase tracking-[0.2em]">Queue Empty</p>}
+                </div>
+              ) : (
+                requests.map((req) => (
+                  <div key={req.id} className={`p-5 bg-white rounded-[2rem] border border-gray-50 shadow-sm space-y-4 ${sidebarCollapsed ? 'flex flex-col items-center' : ''}`}>
+                    <div className="flex items-start justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
+                          {req.studentName?.charAt(0) || "S"}
+                        </div>
+                        {!sidebarCollapsed && (
+                          <div>
+                            <h4 className="text-[13px] font-bold text-[#2D3142]">{req.studentName || 'Student'}</h4>
+                            <p className="text-[10px] text-[#4A4E69]/40">{new Date(req.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                      </div>
+                      {!sidebarCollapsed && (
+                        <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                          New
+                        </div>
+                      )}
+                    </div>
+                    {!sidebarCollapsed && (
+                      <>
+                        <p className="text-[11px] text-[#4A4E69] leading-relaxed bg-[#F9FBFF] p-3 rounded-2xl border border-gray-50 italic">
+                          "{req.message}"
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            disabled={actionLoading === req.id}
+                            onClick={() => handleRequestAction(req.id, 'accept')}
+                            className="bg-[#2D3142] text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#4A4E69] transition-all flex items-center justify-center gap-2"
+                          >
+                            {actionLoading === req.id ? '...' : (
+                              <><CheckCircle className="w-3 h-3" /> Accept</>
+                            )}
+                          </button>
+                          <button
+                            disabled={actionLoading === req.id}
+                            onClick={() => handleRequestAction(req.id, 'reject')}
+                            className="bg-gray-100 text-[#4A4E69] py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          >
+                            <XCircle className="w-3 h-3" /> Decline
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {sidebarCollapsed && (
+                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </aside>
 
-      {/* Conversation Area */}
-      <section className="flex-1 hidden md:flex flex-col min-h-[calc(100vh-96px)] relative z-10">
-        {selectedChat ? (
-          <ChatRoom
-            key={selectedChat.id} // Add key prop to force re-render when chat changes
-            chatId={selectedChat.id}
-            userId={userId}
-            otherUserId={selectedChat.otherUserId}
-          />
-        ) : (
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-white/50 to-slate-50/50 backdrop-blur-sm">
-            <div className="text-center space-y-6 p-8">
-              {/* Illustration */}
-              <div className="relative">
-                <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-xl">
-                  <svg className="w-16 h-16 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                {/* Floating elements */}
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full shadow-lg animate-pulse"></div>
-                <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full shadow-lg animate-pulse" style={{ animationDelay: '1s' }}></div>
+      {/* Main Conversation Hub */}
+      <section className={`flex-1 relative z-10 flex flex-col h-[calc(100vh-96px)] transition-all duration-300 ${selectedChat ? 'flex' : 'hidden md:flex'}`}>
+        {
+          selectedChat ? (
+            <ChatRoom
+              key={selectedChat.id}
+              chatId={selectedChat.id}
+              userId={userId}
+              otherUserId={selectedChat.otherUserId}
+              otherUserName={(() => {
+                const p = participants[selectedChat.otherUserId];
+                if (!p) return null;
+                const isDoc = ['psychiatrist', 'doctor', 'company_doctor'].includes(p.role);
+                return isDoc ? `Doc. ${p.name}` : p.name;
+              })()}
+              userRole={userRole}
+              onBack={() => setSelectedChat(null)}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-12">
+              <div className="w-32 h-32 bg-white/50 backdrop-blur-3xl rounded-[3rem] flex items-center justify-center mx-auto mb-10 shadow-2xl border border-white">
+                <Brain className="w-12 h-12 text-[#2D3142] opacity-10" />
               </div>
-              
-              {/* Text content */}
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-800">Choose a conversation</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  Select a chat from the sidebar to start messaging and stay connected with your conversations.
-                </p>
+              <h2 className="text-2xl font-black text-[#2D3142] mb-4 tracking-tighter">Sanctuary Awaits</h2>
+              <p className="text-sm text-[#4A4E69]/40 leading-relaxed font-light max-w-sm">
+                Select a professional transmission from the sidebar to engage in your secure mental wellness sanctuary.
+              </p>
+            </div>
+          )}
+      </section>
+
+      {/* Request Form Modal (Student) */}
+      {
+        showRequestForm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-[#2D3142]/90 backdrop-blur-xl" onClick={() => setShowRequestForm(false)} />
+            <div className="relative bg-white w-full max-w-lg rounded-[3.5rem] p-10 md:p-14 shadow-2xl border border-white/20">
+              <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                  <Send className="w-8 h-8" />
+                </div>
+                <h2 className="text-3xl font-black text-[#2D3142] tracking-tighter mb-2">Request Sync</h2>
+                <p className="text-sm text-[#4A4E69]/50 font-light">Describe your current state to connect with a professional.</p>
               </div>
 
-              {/* Decorative elements */}
-              <div className="flex justify-center space-x-2 opacity-40">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
+              <form onSubmit={handleRequestSubmit} className="space-y-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#4A4E69]/40 ml-1">Transmission Reason</label>
+                  <textarea
+                    value={requestReason}
+                    onChange={(e) => setRequestReason(e.target.value)}
+                    className="w-full bg-[#F9FBFF] border border-gray-100 rounded-[2rem] p-6 text-sm text-[#2D3142] placeholder:text-[#4A4E69]/30 focus:bg-white focus:border-indigo-200 outline-none transition-all min-h-[160px] resize-none"
+                    placeholder="Briefly share what's on your mind..."
+                    required
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestForm(false)}
+                    className="flex-1 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] text-[#4A4E69]/40 hover:text-[#2D3142] transition-colors"
+                  >
+                    Abort
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-[2] py-4 bg-[#2D3142] text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-xl hover:bg-[#4A4E69] transition-all"
+                  >
+                    {loading ? 'Dispatching...' : 'Initiate Request'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        )}
-      </section>
+        )
+      }
     </div>
   );
 }

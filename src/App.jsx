@@ -16,8 +16,8 @@ import "./App.css";
 
 // ✅ Lazy load all pages
 import Home from "../pages/Home";
+const UnifiedAuth = lazy(() => import("../pages/UnifiedAuth"));
 const Test = lazy(() => import("../pages/Test"));
-const Auth = lazy(() => import("../pages/Auth"));
 const Community = lazy(() => import("../pages/Community"));
 const Resources = lazy(() => import("../pages/Resources"));
 const ChatWindow = lazy(() => import("../components/Chatbot/ChatWindow"));
@@ -26,110 +26,60 @@ const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy"));
 const CookiePolicy = lazy(() => import("../pages/CookiePolicy"));
 const TermsOfService = lazy(() => import("../pages/TermsOfService"));
 const MentalWellnessResources = lazy(() => import("../pages/WellnessResources"));
-const PsychiatristAuth = lazy(() => import("../pages/PsychiatristAuth"));
-const PsychiatristDashboard = lazy(() => import("../pages/PsychiatristDashboard"));
+
 const MyChats = lazy(() => import("../pages/MyChats"));
-const AdminAuth = lazy(() => import("../pages/AdminAuth"));
-const AddRequest = lazy(() => import("../pages/AddRequest"));
+
 const ViewRequests = lazy(() => import("../pages/ViewRequests"));
 const SuggestedResources = lazy(() => import("../pages/SuggestedResources"));
 import AdminReportsPage from '../pages/AdminReportsPage';
 
-// ✅ Protected route wrapper for psychiatrists
+const hideHeaderOnPaths = ["/auth"];
+
+// ✅ Protected route wrapper for psychiatrists and doctors
 const ProtectedPsychiatristRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        console.log('🛡️ No user, redirecting to /psychiatrist-auth');
-        navigate('/psychiatrist-auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'psychiatrist') {
-        console.log('🛡️ User role is not psychiatrist:', user.role, 'redirecting to /auth');
-        navigate('/auth');
-        return;
-      }
-      console.log('🛡️ User is psychiatrist, allowing access');
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'psychiatrist') {
-    return null;
-  }
+  const psychiatristRoles = ['psychiatrist', 'doctor', 'company_doctor'];
+  if (!psychiatristRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
 
-// ✅ Protected route wrapper for students
+// ✅ Protected route wrapper for members / students
 const ProtectedStudentRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        navigate('/auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'student') {
-        navigate('/psychiatrist-auth');
-        return;
-      }
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'student') {
-    return null;
-  }
+  const memberRoles = ['student', 'member', 'company_member'];
+  if (!memberRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
 
-// ✅ Protected route wrapper for admin users
+// ✅ Protected route wrapper for all admin types
 const ProtectedAdminRoute = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        navigate('/admin-auth', { state: { from: location } });
-        return;
-      }
-      if (user.role !== 'admin') {
-        navigate('/admin-auth', { state: { from: location } });
-        return;
-      }
-    }
-  }, [user, loading, navigate, location]);
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
+  const adminRoles = ['admin', 'central_admin', 'overall_admin'];
+  if (!adminRoles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 };
 
 function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [darkMode, setDarkMode] = useState(false);

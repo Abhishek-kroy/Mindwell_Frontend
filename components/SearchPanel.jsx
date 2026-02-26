@@ -8,8 +8,7 @@ const SearchPanel = ({
   open,
   onToggle,
   searchTerm,
-  setSearchTerm,
-  darkMode
+  setSearchTerm
 }) => {
   const [filterType, setFilterType] = useState('all');
   const [searchHistory, setSearchHistory] = useState(['#mindfulness', '#recovery', '#hope']);

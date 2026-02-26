@@ -62,7 +62,18 @@ export const useAssessment = () => {
             setResult(state.result);
             setStage(state.stage || 0);
         }
-    }, []);
+    }, [setSelectedMood, setQuestions, setCurrentQuestionIndex, setAnswers, setResult, setStage]);
+
+    // Handle logout-driven reset
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (!user) {
+                // Clear state if logged out
+                reset();
+            }
+        });
+        return () => unsubscribe();
+    }, [auth]);
 
     // Save persistence
     useEffect(() => {
@@ -70,22 +81,20 @@ export const useAssessment = () => {
         localStorage.setItem('mindWellAssessment', JSON.stringify(state));
     }, [selectedMood, questions, currentQuestionIndex, answers, result, stage]);
 
-    const startAssessment = useCallback((mood) => {
-        if (!mood) return;
+    const startAssessment = (mood) => {
         setLoading(true);
-        setSelectedMood(mood);
-        const moodQuestions = mood === 'happy' ? getQuestionsByMood('sad') : shuffle(getQuestionsByMood(mood));
-        setQuestions(moodQuestions);
-        setAnswers([]);
-        setCurrentQuestionIndex(0);
-        setStage(2);
-
         setTimeout(() => {
+            setSelectedMood(mood);
+            const moodQuestions = mood === 'happy' ? getQuestionsByMood('sad') : shuffle(getQuestionsByMood(mood));
+            setQuestions(moodQuestions);
+            setAnswers([]);
+            setCurrentQuestionIndex(0);
+            setStage(2);
             setLoading(false);
         }, 800);
-    }, []);
+    };
 
-    const saveResults = async (assessmentResult) => {
+    const saveResults = async (assessmentResult, analysis = null) => {
         try {
             const user = auth.currentUser;
             if (!user) return;
@@ -98,6 +107,7 @@ export const useAssessment = () => {
                 moodType: selectedMood,
                 score: assessmentResult?.score || 0,
                 level: assessmentResult?.level || "Happy",
+                analysis,
                 answers: answers.map((value, index) => ({
                     question: questions[index]?.text || "",
                     value

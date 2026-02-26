@@ -19,13 +19,13 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode,
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`mt-4 lg:max-w-md px-4 py-2 rounded-lg overflow-hidden ${isUser
+        className={`mt-4 lg:max-w-[75%] px-6 py-4 rounded-3xl overflow-hidden shadow-sm ${isUser
           ? darkMode
-            ? 'bg-blue-600 text-white'
-            : 'bg-blue-500 text-white'
+            ? 'bg-[#2D3142] text-white rounded-br-sm'
+            : 'bg-[#2D3142] text-white rounded-br-sm'
           : darkMode
-            ? 'bg-gray-800 text-gray-200 border border-gray-700'
-            : 'bg-white border border-gray-200 text-gray-900'
+            ? 'bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-sm'
+            : 'bg-white border border-[#7C9885]/20 text-[#4A4E69] rounded-bl-sm'
           }`}
       >
         {jsxContent ? (
@@ -69,11 +69,11 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode,
         )}
 
         {timestamp && (
-          <p className={`text-xs mt-1 ${isUser
-            ? darkMode ? 'text-blue-200' : 'text-blue-100'
-            : darkMode ? 'text-gray-400' : 'text-gray-500'
+          <p className={`text-[10px] font-bold mt-2 uppercase tracking-wider ${isUser
+            ? 'text-white/40'
+            : darkMode ? 'text-gray-400' : 'text-[#4A4E69]/40'
             }`}>
-            {new Date(timestamp).toLocaleTimeString()}
+            {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
 

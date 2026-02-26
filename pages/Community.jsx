@@ -51,7 +51,8 @@ export default function CommunityPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editedPostContent, setEditedPostContent] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
+  // Theme is locked to light mode as per requirements
+  const darkMode = false;
   const [reactions, setReactions] = useState({});
   const [showReactions, setShowReactions] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -59,7 +60,6 @@ export default function CommunityPage() {
   const [lastVisible, setLastVisible] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const POSTS_PER_PAGE = 5;
-
 
   const reactionTypes = {
     like: { icon: <ThumbsUp className="h-4 w-4" />, color: "text-blue-500" },
@@ -336,7 +336,7 @@ export default function CommunityPage() {
 
       if (likedPosts.includes(postId)) {
         await updateDoc(postRef, {
-          likes: (posts.find(p => p.id === postId)?.likes - 1 || 0)
+          likes: increment(-1)
         });
         await updateDoc(userRef, {
           likedPosts: arrayRemove(postId)
@@ -344,7 +344,7 @@ export default function CommunityPage() {
         setLikedPosts(prev => prev.filter(id => id !== postId));
       } else {
         await updateDoc(postRef, {
-          likes: (posts.find(p => p.id === postId)?.likes + 1 || 1)
+          likes: increment(1)
         });
         await updateDoc(userRef, {
           likedPosts: arrayUnion(postId)
@@ -353,6 +353,8 @@ export default function CommunityPage() {
       }
     } catch (error) {
       console.error("Error updating like: ", error);
+      // Revert local state on error
+      fetchInitialPosts();
     }
   };
 
@@ -460,6 +462,11 @@ export default function CommunityPage() {
     setEditedPostContent(post.content);
   };
 
+  const handleEditChange = (content) => {
+    setEditedPostContent(content);
+  };
+
+
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditedPostContent("");
@@ -470,10 +477,21 @@ export default function CommunityPage() {
 
     try {
       const postRef = doc(db, "posts", editingPostId);
+      const tags = editedPostContent.match(/#\w+/g) || [];
+
       await updateDoc(postRef, {
         content: editedPostContent,
-        tags: editedPostContent.match(/#\w+/g) || []
+        tags: tags
       });
+
+      // Update local state
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === editingPostId) {
+          return { ...p, content: editedPostContent, tags: tags };
+        }
+        return p;
+      }));
+
       setEditingPostId(null);
       setEditedPostContent("");
     } catch (error) {
@@ -552,9 +570,7 @@ export default function CommunityPage() {
     console.log("Particles container loaded", container);
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -698,7 +714,6 @@ export default function CommunityPage() {
           onToggle={toggleSearchPanel}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          darkMode={darkMode}
         />
       </div>
 
@@ -708,7 +723,6 @@ export default function CommunityPage() {
         onClose={() => setShowCreateModal(false)}
         isLoading={isLoading}
         handlePostSubmit={handlePostSubmit}
-        darkMode={darkMode}
       />
 
     </div>

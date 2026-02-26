@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Heart, Play, Pause, Book, Smartphone, Clock, Calendar, Download, Phone, MessageCircle, Globe, ChevronLeft, ChevronRight, Star, Check, Volume2, VolumeX, SkipBack, SkipForward, User, Menu, X, Plus, Minus, CheckCircle, Share2, Bell, Notebook, Award, Sun, Moon } from 'lucide-react';
+import { Search, Filter, Heart, Play, Pause, Book, Smartphone, Clock, Calendar, Download, Phone, MessageCircle, Globe, ChevronLeft, ChevronRight, Star, Check, Volume2, VolumeX, SkipBack, SkipForward, User, Menu, X, Plus, Minus, CheckCircle, Share2, Bell, Notebook, Award, Sun, Moon, Sparkles, ArrowRight } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { useMemo } from 'react';
 
 import { deleteDoc } from 'firebase/firestore';
 
-import {auth, db} from '../context/firebase/firebase';
+import { auth, db } from '../context/firebase/firebase';
 
 import { resources } from '../src/resources.js';
 
@@ -45,13 +47,28 @@ const MentalWellnessResources = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [moodHistory, setMoodHistory] = useState([]);
-  
+  const [dynamicResources, setDynamicResources] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newResource, setNewResource] = useState({
+    title: '',
+    type: 'article',
+    mood: 'happy',
+    url: '',
+    description: '',
+    duration: '5-10 min',
+    tags: []
+  });
+  const [showCrisisHelp, setShowCrisisHelp] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Recommended Section Logic
+  const todayDateStr = new Date().toLocaleDateString('en-CA');
+  const todaysMoodEntry = moodHistory.find(entry => entry.date === todayDateStr);
+  const recommendedMood = todaysMoodEntry ? todaysMoodEntry.latestMood : null;
+
   const audioRef = useRef(null);
   const notificationRef = useRef(null);
-
-  
- 
-  
 
   // Sample data for progress charts
   const weeklyProgressData = [
@@ -75,59 +92,66 @@ const MentalWellnessResources = () => {
     { id: 'crisis', name: 'Crisis', icon: '🚨', color: 'bg-red-600' }
   ];
 
+  const normalizedResources = useMemo(() => {
+    const moodKeys = selectedMood === 'all'
+      ? Object.keys(resources)
+      : selectedMood === 'bookmarked'
+        ? Object.keys(resources)
+        : [selectedMood];
 
- const normalizedResources = useMemo(() => {
-  const moodKeys = selectedMood === 'all'
-    ? Object.keys(resources)
-    : selectedMood === 'bookmarked'
-    ? Object.keys(resources)
-    : [selectedMood];
+    const staticRes = moodKeys.flatMap((key) =>
+      (resources[key] || []).map((res, index) => ({
+        ...res,
+        id: `${key}-${index}`,
+        mood: key,
+        duration: res.duration || '5-10 min',
+        type: res.type?.toLowerCase() || 'article',
+      }))
+    );
 
-  const all = moodKeys.flatMap((key) =>
-    (resources[key] || []).map((res, index) => ({
-      ...res,
-      id: `${key}-${index}`, // or use a UUID if needed
-      mood: key,
-      duration: res.duration || '5-10 min', // fallback duration if missing
-      type: res.type?.toLowerCase() || 'article',
-    }))
-  );
+    const merged = [...staticRes, ...dynamicResources].filter(res => {
+      if (selectedMood === 'all') return true;
+      if (selectedMood === 'bookmarked') return bookmarkedResources.includes(res.id);
+      return res.mood === selectedMood;
+    });
 
-  if (selectedMood === 'bookmarked') {
-    return all.filter(res => bookmarkedResources.includes(res.id));
-  }
+    return merged;
+  }, [resources, selectedMood, bookmarkedResources, dynamicResources]);
 
-  return all;
-}, [resources, selectedMood, bookmarkedResources]);
+  const filteredResources = useMemo(() => {
+    return normalizedResources.filter((resource) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        resource.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-const filteredResources = useMemo(() => {
-  return normalizedResources.filter((resource) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType =
+        selectedFilters.type === 'all' ||
+        resource.type === selectedFilters.type;
 
-    const matchesType =
-      selectedFilters.type === 'all' ||
-      resource.type === selectedFilters.type;
+      const matchesDuration =
+        selectedFilters.duration === 'all' ||
+        (resource.duration &&
+          (
+            (selectedFilters.duration === '<5 min' && resource.duration.includes('<5')) ||
+            (selectedFilters.duration === '5-10 min' && resource.duration.includes('5-10')) ||
+            (selectedFilters.duration === '10-20 min' && resource.duration.includes('10-20')) ||
+            (selectedFilters.duration === '20+ min' && resource.duration.includes('20'))
+          ));
 
-    const matchesDuration =
-      selectedFilters.duration === 'all' ||
-      (resource.duration &&
-        (
-          (selectedFilters.duration === '<5 min' && resource.duration.includes('<5')) ||
-          (selectedFilters.duration === '5-10 min' && resource.duration.includes('5-10')) ||
-          (selectedFilters.duration === '10-20 min' && resource.duration.includes('10-20')) ||
-          (selectedFilters.duration === '20+ min' && resource.duration.includes('20'))
-        ));
-
-    return matchesSearch && matchesType && matchesDuration;
-  });
-}, [normalizedResources, searchTerm, selectedFilters]);
-
+      return matchesSearch && matchesType && matchesDuration;
+    });
+  }, [normalizedResources, searchTerm, selectedFilters]);
 
   // Flatten resources for filtering
-  const allResources = Object.values(resources).flat();
+  const allResources = useMemo(() => {
+    const staticAll = Object.values(resources).flat().map((res, idx) => ({
+      ...res,
+      id: res.id || `static-${idx}`,
+      type: res.type?.toLowerCase() || 'article'
+    }));
+    return [...staticAll, ...dynamicResources];
+  }, [dynamicResources]);
 
   // Auth state listener
   useEffect(() => {
@@ -185,9 +209,12 @@ const filteredResources = useMemo(() => {
 
       // Load mood history
       const moodHistoryRef = collection(db, 'users', userId, 'dailyMood');
-      const moodHistoryQuery = query(moodHistoryRef, orderBy('date', 'desc'));
-      const moodHistorySnap = await getDocs(moodHistoryQuery);
-      setMoodHistory(moodHistorySnap.docs.map(doc => doc.data()));
+      const moodHistorySnap = await getDocs(query(moodHistoryRef));
+      const historyData = moodHistorySnap.docs.map(doc => ({
+        ...doc.data(),
+        date: doc.id
+      }));
+      setMoodHistory(historyData);
 
       // Load settings
       const settingsRef = doc(db, 'users', userId, 'preferences', 'settings');
@@ -200,7 +227,12 @@ const filteredResources = useMemo(() => {
       }
 
       // Calculate streak
-      calculateStreak(moodHistorySnap.docs.map(doc => doc.data()));
+      calculateStreak(historyData);
+
+      // Load dynamic resources
+      const communityRef = collection(db, 'community_resources');
+      const communitySnap = await getDocs(query(communityRef));
+      setDynamicResources(communitySnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
       setLoading(false);
     } catch (error) {
@@ -249,15 +281,11 @@ const filteredResources = useMemo(() => {
         const plannerRef = collection(db, 'users', user.uid, 'planner');
         const plannerQuery = query(plannerRef);
         const plannerSnap = await getDocs(plannerQuery);
-        
+
         const batch = [];
-        
-
-plannerSnap.forEach(doc => {
-  batch.push(deleteDoc(doc.ref));
-});
-
-        
+        plannerSnap.forEach(doc => {
+          batch.push(deleteDoc(doc.ref));
+        });
         await Promise.all(batch);
 
         // Add new planner items
@@ -353,16 +381,16 @@ plannerSnap.forEach(doc => {
 
     // Sort by date ascending
     const sorted = [...moodData].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
+
     let streak = 1;
     let prevDate = new Date(sorted[sorted.length - 1].date);
-    
+
     // Check consecutive days from most recent
     for (let i = sorted.length - 2; i >= 0; i--) {
       const currentDate = new Date(sorted[i].date);
       const diffTime = prevDate - currentDate;
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
-      
+
       if (diffDays === 1) {
         streak++;
         prevDate = currentDate;
@@ -370,7 +398,7 @@ plannerSnap.forEach(doc => {
         break;
       }
     }
-    
+
     setStreakCount(streak);
   };
 
@@ -451,26 +479,26 @@ plannerSnap.forEach(doc => {
 
   // Resource management functions
   const toggleBookmark = async (resourceId) => {
-    const newBookmarks = bookmarkedResources.includes(resourceId) 
+    const newBookmarks = bookmarkedResources.includes(resourceId)
       ? bookmarkedResources.filter(id => id !== resourceId)
       : [...bookmarkedResources, resourceId];
-    
+
     setBookmarkedResources(newBookmarks);
-    
+
     toast.success(
-      bookmarkedResources.includes(resourceId) 
-        ? 'Removed from bookmarks' 
+      bookmarkedResources.includes(resourceId)
+        ? 'Removed from bookmarks'
         : 'Added to bookmarks'
     );
   };
 
   const markCompleted = async (resourceId) => {
-    const newCompleted = completedResources.includes(resourceId) 
+    const newCompleted = completedResources.includes(resourceId)
       ? completedResources.filter(id => id !== resourceId)
       : [...completedResources, resourceId];
-    
+
     setCompletedResources(newCompleted);
-    
+
     if (!completedResources.includes(resourceId)) {
       toast.success('Marked as completed!', {
         icon: <CheckCircle className="text-green-500" />
@@ -495,6 +523,26 @@ plannerSnap.forEach(doc => {
     toast.success('Removed from planner');
   };
 
+  const handleAddResource = async (e) => {
+    e.preventDefault();
+    if (!newResource.title || !newResource.url) return;
+    try {
+      await addDoc(collection(db, "community_resources"), {
+        ...newResource,
+        authorId: user.uid,
+        authorName: user.name || 'Professional',
+        createdAt: new Date().toISOString(),
+        tags: newResource.title.split(' ').slice(0, 3)
+      });
+      setShowAddModal(false);
+      setNewResource({ title: '', type: 'article', mood: 'happy', url: '', description: '', whyHelpful: '', duration: '5-10 min', tags: [] });
+      toast.success('Resource added successfully!');
+    } catch (error) {
+      console.error("Error adding resource:", error);
+      toast.error('Failed to add resource');
+    }
+  };
+
   const saveJournalEntry = async () => {
     if (!user || !currentResourceId || !currentJournalEntry.trim()) return;
 
@@ -505,9 +553,9 @@ plannerSnap.forEach(doc => {
         date: new Date().toISOString(),
         text: currentJournalEntry
       };
-      
+
       await addDoc(journalRef, newEntry);
-      
+
       // Update local state
       setJournalEntries(prev => ({
         ...prev,
@@ -535,7 +583,7 @@ plannerSnap.forEach(doc => {
 
   // UI helper functions
   const getTypeIcon = (type) => {
-    switch(type.toLowerCase()) {
+    switch (type.toLowerCase()) {
       case 'video': return <Play className="w-4 h-4" />;
       case 'audio': return <Volume2 className="w-4 h-4" />;
       case 'exercise': return <Book className="w-4 h-4" />;
@@ -546,7 +594,8 @@ plannerSnap.forEach(doc => {
   };
 
   const getActionButton = (resource) => {
-    if (resource.type.toLowerCase() === 'audio') {
+    const type = resource.type?.toLowerCase();
+    if (type === 'audio') {
       return (
         <button
           onClick={() => playAudio(resource)}
@@ -556,7 +605,7 @@ plannerSnap.forEach(doc => {
           <span>Play</span>
         </button>
       );
-    } else if (resource.type.toLowerCase() === 'video') {
+    } else if (type === 'video') {
       return (
         <a
           href={resource.url}
@@ -567,16 +616,6 @@ plannerSnap.forEach(doc => {
           <Play className="w-4 h-4" />
           <span>Watch</span>
         </a>
-      );
-    } else if (resource.type.toLowerCase() === 'exercise') {
-      return (
-        <button
-          onClick={() => window.open(resource.url, '_blank')}
-          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download</span>
-        </button>
       );
     } else {
       return (
@@ -623,29 +662,56 @@ plannerSnap.forEach(doc => {
   }
 
   return (
-    <div className={`min-h-screen transition-colors relative top-20 duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gradient-to-br from-blue-50 to-purple-50 text-gray-800'}`}>
+    <div className={`min-h-screen pt-20 transition-colors duration-300 ${darkMode ? 'bg-[#1D1F2D] text-gray-100' : 'bg-[#F9FBFF] text-[#2D3142]'}`}>
       {/* Toast Notifications */}
       <ToastContainer position="top-right" theme={darkMode ? 'dark' : 'light'} />
 
-      {/* Crisis Help Bar */}
-      <div className="bg-red-600 text-white p-3 text-center top-0 z-50">
-        <div className="flex items-center justify-center space-x-4 text-sm">
-          <span className="font-medium">Need urgent help? You're not alone.</span>
-          <div className="flex items-center space-x-4">
-            <a href="tel:988" className="flex items-center space-x-1 hover:underline">
-              <Phone className="w-4 h-4" />
-              <span>Call 988</span>
-            </a>
-            <a href="sms:741741" className="flex items-center space-x-1 hover:underline">
-              <MessageCircle className="w-4 h-4" />
-              <span>Text HOME to 741741</span>
-            </a>
-            <a href="https://www.nami.org/help" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 hover:underline">
-              <Globe className="w-4 h-4" />
-              <span>NAMI Support</span>
-            </a>
-          </div>
-        </div>
+      {/* Floating Crisis Help */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-end justify-end">
+        <AnimatePresence>
+          {showCrisisHelp && (
+            <motion.div
+              initial={{ opacity: 0, width: 0, x: 20 }}
+              animate={{ opacity: 1, width: 'auto', x: 0 }}
+              exit={{ opacity: 0, width: 0, x: 20 }}
+              className="mr-4 bg-red-600 text-white rounded-2xl shadow-2xl overflow-hidden flex whitespace-nowrap"
+            >
+              <div className="px-6 py-4 flex items-center space-x-6">
+                <span className="font-bold text-sm uppercase tracking-wider">Urgent Help:</span>
+                <a href="tel:988" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <Phone className="w-4 h-4" />
+                  <span className="font-semibold">988</span>
+                </a>
+                <div className="w-px h-4 bg-red-500/50"></div>
+                <a href="sms:741741" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="font-semibold">Text HOME</span>
+                </a>
+                <div className="w-px h-4 bg-red-500/50"></div>
+                <a href="https://www.nami.org/help" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <Globe className="w-4 h-4" />
+                  <span className="font-semibold">NAMI Support</span>
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button
+          onClick={() => setShowCrisisHelp(!showCrisisHelp)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-colors ${showCrisisHelp ? 'bg-red-700 text-white' : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+            }`}
+        >
+          {showCrisisHelp ? <X className="w-6 h-6" /> : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+            </svg>
+          )}
+        </motion.button>
       </div>
 
       {/* Audio Player */}
@@ -677,7 +743,7 @@ plannerSnap.forEach(doc => {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} w-12`}>{formatTime(currentTime)}</span>
               <div className={`flex-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 cursor-pointer`} onClick={handleSeek}>
@@ -703,7 +769,7 @@ plannerSnap.forEach(doc => {
               </div>
             </div>
           </div>
-          
+
           <audio
             ref={audioRef}
             src={currentlyPlaying.url}
@@ -719,15 +785,15 @@ plannerSnap.forEach(doc => {
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className={`fixed inset-0 z-50 ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}>
-          <button 
+          <button
             onClick={() => setShowMobileMenu(false)}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           <div className="flex flex-col space-y-6 mt-12">
-            <button 
+            <button
               onClick={() => {
                 setShowPlanner(true);
                 setShowMobileMenu(false);
@@ -737,8 +803,8 @@ plannerSnap.forEach(doc => {
               <Calendar className="w-5 h-5" />
               <span>My Planner</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setSelectedMood('all');
                 setShowMobileMenu(false);
@@ -748,8 +814,8 @@ plannerSnap.forEach(doc => {
               <Book className="w-5 h-5" />
               <span>All Resources</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setSelectedMood('bookmarked');
                 setShowMobileMenu(false);
@@ -759,26 +825,26 @@ plannerSnap.forEach(doc => {
               <Heart className="w-5 h-5" />
               <span>Saved Resources</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={toggleDarkMode}
               className="flex items-center space-x-3 text-lg"
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
-            
+
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <Bell className="w-5 h-5" />
                 <div className="flex-1">
-                  <label htmlFor="notification-time" className="block text-sm font-medium mb-1">
+                  <label htmlFor="notification-time-mobile" className="block text-sm font-medium mb-1">
                     Daily Reminder
                   </label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="time"
-                      id="notification-time"
+                      id="notification-time-mobile"
                       value={notificationTime}
                       onChange={(e) => setNotificationTime(e.target.value)}
                       className="px-2 py-1 border rounded"
@@ -802,35 +868,35 @@ plannerSnap.forEach(doc => {
       {showJournalModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className={`rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 text-gray-800 dark:text-white">
               <h3 className="text-xl font-semibold">Journal Entry</h3>
-              <button 
+              <button
                 onClick={() => setShowJournalModal(false)}
                 className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="mb-4">
-              <h4 className="font-medium mb-2">
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
                 {allResources.find(r => r.id === currentResourceId)?.title}
               </h4>
               <textarea
                 value={currentJournalEntry}
                 onChange={(e) => setCurrentJournalEntry(e.target.value)}
                 placeholder="Write your thoughts, reflections, or notes here..."
-                className={`w-full h-40 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                className={`w-full h-40 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
               />
             </div>
-            
+
             <div className="mb-4">
-              <h4 className="font-medium mb-2">Previous Entries</h4>
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">Previous Entries</h4>
               {journalEntries[currentResourceId]?.length > 0 ? (
                 <div className="space-y-3">
                   {journalEntries[currentResourceId].map((entry, index) => (
                     <div key={index} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                      <p className="text-sm">{entry.text}</p>
+                      <p className="text-sm text-gray-800 dark:text-gray-200">{entry.text}</p>
                       <p className="text-xs mt-1 text-gray-500">
                         {new Date(entry.date).toLocaleString()}
                       </p>
@@ -841,7 +907,7 @@ plannerSnap.forEach(doc => {
                 <p className="text-sm text-gray-500">No previous entries</p>
               )}
             </div>
-            
+
             <button
               onClick={saveJournalEntry}
               disabled={!currentJournalEntry.trim()}
@@ -853,87 +919,228 @@ plannerSnap.forEach(doc => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="flex justify-between items-center mb-8">
-          <button 
-            onClick={() => setShowMobileMenu(true)}
-            className="md:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          
-          <div className="text-center md:text-left">
-            <h1 className={`text-3xl md:text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-2`}>Mental Wellness Resources</h1>
-            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Tools for your mental health journey
-            </p>
+      {/* Add Resource Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4 text-gray-800">
+          <div className={`rounded-[2rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} p-8 md:p-10 border border-white/20`}>
+            <div className="flex justify-between items-center mb-8 text-blue-600">
+              <h3 className="text-2xl font-black tracking-tight">Add New Resource</h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddResource} className="space-y-6">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={newResource.title}
+                  onChange={(e) => setNewResource({ ...newResource, title: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="The Power of Mindfulness"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Type</label>
+                  <select
+                    value={newResource.type}
+                    onChange={(e) => setNewResource({ ...newResource, type: e.target.value })}
+                    className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none`}
+                  >
+                    <option value="article">Article</option>
+                    <option value="video">Video</option>
+                    <option value="audio">Audio</option>
+                    <option value="exercise">Exercise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Mood</label>
+                  <select
+                    value={newResource.mood}
+                    onChange={(e) => setNewResource({ ...newResource, mood: e.target.value })}
+                    className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none`}
+                  >
+                    {moods.filter(m => m.id !== 'all').map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">URL</label>
+                <input
+                  type="url"
+                  required
+                  value={newResource.url}
+                  onChange={(e) => setNewResource({ ...newResource, url: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none focus:ring-2 focus:ring-blue-500`}
+                  placeholder="https://example.com/resource"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
+                <textarea
+                  value={newResource.description}
+                  onChange={(e) => setNewResource({ ...newResource, description: e.target.value })}
+                  className={`w-full p-4 rounded-2xl border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-800'} outline-none min-h-[100px] resize-none`}
+                  placeholder="Briefly describe the resource..."
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-[#2D3142] text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-[#4A4E69] shadow-xl transition-all"
+              >
+                Publish Resource
+              </button>
+            </form>
           </div>
-          
-          <div className="hidden md:flex items-center space-x-4">
-            <button 
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 transition-all duration-300 ${currentlyPlaying ? 'pb-32' : 'pb-12'}`}>
+
+        {/* Hero Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-2"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-[#7C9885]/20 shadow-sm mb-4">
+              <Sparkles className="w-4 h-4 text-[#7C9885]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#4A4E69]">Curated For You</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#1D1F2D] drop-shadow-sm">
+              MindWell <span className="text-[#7C9885]">Resources</span>
+            </h1>
+            <p className="text-[#4A4E69] text-lg font-medium max-w-2xl leading-relaxed opacity-80 mt-2">
+              Explore your personalized toolkit of exercises, articles, and guided sessions.
+            </p>
+          </motion.div>
+
+          <div className="flex flex-wrap items-center gap-3">
+
+            <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`p-4 rounded-2xl ${darkMode ? 'bg-gray-800 text-yellow-500 hover:bg-gray-700' : 'bg-white text-[#4A4E69] hover:text-[#2D3142] hover:bg-gray-50 border border-transparent hover:border-[#7C9885]/20'} shadow-sm transition-all`}
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            
-            <div className="flex items-center space-x-2">
-              <Bell className="w-5 h-5" />
-              <div className="flex items-center">
-                <input
-                  type="time"
-                  value={notificationTime}
-                  onChange={(e) => setNotificationTime(e.target.value)}
-                  className="px-2 py-1 border rounded w-28"
-                  disabled={!notificationEnabled}
-                />
-                <button
-                  onClick={toggleNotificationSetting}
-                  className={`ml-2 p-1 rounded-full ${notificationEnabled ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-                >
-                  {notificationEnabled ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            
-            {user ? (
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                <User className="w-5 h-5" />
-              </div>
-            ) : (
-              <button 
-                onClick={() => signInWithGoogle()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </header>
-
-        {/* Mood Selector */}
-        <div className="mb-8">
-          <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>How are you feeling today?</h2>
-          <div className="flex overflow-x-auto pb-4 space-x-3">
-            {moods.map((mood) => (
-              <button
-                key={mood.id}
-                onClick={() => setSelectedMood(mood.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl min-w-[100px] transition-all ${selectedMood === mood.id ? 
-                  `${mood.color} text-white shadow-lg transform scale-105` : 
-                  darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-100'} shadow`}
-              >
-                <span className="text-2xl mb-1">{mood.icon}</span>
-                <span className="text-sm font-medium">{mood.name}</span>
-              </button>
-            ))}
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        {/* ✨ NEW section: Recommended Resources OR Mood Prompt ✨ */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
+            {recommendedMood ? (
+              // Case A: Mood is logged today
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-2xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-[#2D3142]'}`}>
+                    Recommended for You
+                  </h2>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#7C9885] bg-[#7C9885]/10 px-3 py-1 rounded-full">
+                    Based on your check-in ({moods.find(m => m.id === recommendedMood)?.name || 'Mood'})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {allResources
+                    .filter(res => res.mood === recommendedMood || res.tags.includes(recommendedMood))
+                    .slice(0, 3)
+                    .map((resource, i) => (
+                      <motion.div
+                        key={`rec-${resource.id}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className={`rounded-3xl border overflow-hidden ${darkMode ? 'bg-[#2D3142] border-gray-700' : 'bg-white border-[#7C9885]/10'} shadow-sm hover:shadow-xl transition-all duration-300 group`}
+                      >
+                        <div className={`p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className={`font-extrabold text-lg leading-tight ${darkMode ? 'text-white' : 'text-[#2D3142] group-hover:text-[#7C9885]'} transition-colors`}>
+                              {resource.title}
+                            </h3>
+                            <div className="flex space-x-2 shrink-0 ml-4">
+                              <button onClick={(e) => { e.stopPropagation(); toggleBookmark(resource.id); }} className={`p-2 rounded-xl transition-colors ${bookmarkedResources.includes(resource.id) ? 'bg-pink-50 text-pink-500' : 'bg-gray-50 text-gray-400 hover:text-pink-500 hover:bg-pink-50'}`}>
+                                <Heart className="w-4 h-4" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); markCompleted(resource.id); }} className={`p-2 rounded-xl transition-colors ${completedResources.includes(resource.id) ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}>
+                                <CheckCircle className="w-4 h-4" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[13px] leading-relaxed font-medium text-[#4A4E69]/80 mb-4 line-clamp-2">
+                            {resource.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1.5 text-[11px] font-bold uppercase tracking-wider text-[#4A4E69]/60">
+                              {getTypeIcon(resource.type)}
+                              <span>{resource.duration}</span>
+                            </div>
+                            <div className="flex space-x-1">
+                              {getActionButton(resource)}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  {allResources.filter(res => res.mood === recommendedMood || res.tags.includes(recommendedMood)).length === 0 && (
+                    <div className="col-span-full p-8 text-center rounded-3xl border border-dashed border-[#7C9885]/30 bg-[#7C9885]/5">
+                      <p className="text-[#4A4E69] font-medium">No specific recommendations found for your current mood right now. Browse our library below!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Case B: No mood logged today
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-[#2D3142] p-8 md:p-12 shadow-2xl group">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#7C9885]/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:scale-110 transition-transform duration-1000" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="space-y-4 max-w-xl text-center md:text-left">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+                      How are you feeling <span className="text-[#7C9885]">today?</span>
+                    </h2>
+                    <p className="text-gray-300 font-medium leading-relaxed">
+                      Take a quick Mood Check-in to unlock personalized exercises, articles, and tools selected specifically to support you right now.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/therapies')}
+                    className="flex-shrink-0 flex items-center gap-3 px-8 py-4 bg-white text-[#2D3142] rounded-full font-extrabold hover:bg-[#F9FBFF] hover:scale-105 transition-all shadow-xl hover:shadow-[#7C9885]/20"
+                  >
+                    <span>Log Mood Here</span>
+                    <div className="w-8 h-8 rounded-full bg-[#2D3142]/5 flex items-center justify-center">
+                      <ArrowRight className="w-4 h-4 text-[#7C9885] group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Mood Selector */}
+        < div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div className="relative flex-1 md:max-w-md">
               <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
@@ -945,12 +1152,12 @@ plannerSnap.forEach(doc => {
                 className={`w-full pl-10 pr-4 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
               />
             </div>
-            
+
             <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <select
                   value={selectedFilters.type}
-                  onChange={(e) => setSelectedFilters({...selectedFilters, type: e.target.value})}
+                  onChange={(e) => setSelectedFilters({ ...selectedFilters, type: e.target.value })}
                   className={`appearance-none pl-3 pr-8 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="all">All Types</option>
@@ -962,11 +1169,11 @@ plannerSnap.forEach(doc => {
                 </select>
                 <Filter className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} pointer-events-none`} />
               </div>
-              
+
               <div className="relative">
                 <select
                   value={selectedFilters.duration}
-                  onChange={(e) => setSelectedFilters({...selectedFilters, duration: e.target.value})}
+                  onChange={(e) => setSelectedFilters({ ...selectedFilters, duration: e.target.value })}
                   className={`appearance-none pl-3 pr-8 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 >
                   <option value="all">Any Duration</option>
@@ -977,7 +1184,7 @@ plannerSnap.forEach(doc => {
                 </select>
                 <Clock className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} pointer-events-none`} />
               </div>
-              
+
               <button
                 onClick={() => setShowPlanner(!showPlanner)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}
@@ -985,220 +1192,239 @@ plannerSnap.forEach(doc => {
                 <Calendar className="w-5 h-5" />
                 <span>{showPlanner ? 'Hide Planner' : 'Show Planner'}</span>
               </button>
+
+              {['doctor', 'psychiatrist', 'company_doctor', 'admin'].includes(user?.role) && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-[#2D3142] text-white rounded-lg hover:bg-[#4A4E69] shadow-md transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add Resource</span>
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        </div >
 
         {/* Planner Section */}
-        {showPlanner && (
-          <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>My Wellness Planner</h2>
-              <button
-                onClick={() => setShowPlanner(false)}
-                className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {plannedPractices.length > 0 ? (
-              <div className="space-y-4">
-                {plannedPractices.map((practice) => (
-                  <div 
-                    key={practice.id} 
-                    className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{practice.title}</h3>
-                        <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{practice.description}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
-                            {practice.duration}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
-                            {practice.type}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        {getActionButton(practice)}
-                        <button
-                          onClick={() => removeFromPlan(practice.id)}
-                          className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-600 text-red-400' : 'hover:bg-gray-100 text-red-500'}`}
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Calendar className="w-12 h-12 mx-auto mb-4" />
-                <p className="text-lg">Your planner is empty</p>
-                <p className="mb-4">Add resources to plan your wellness activities</p>
+        {
+          showPlanner && (
+            <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>My Wellness Planner</h2>
                 <button
                   onClick={() => setShowPlanner(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 >
-                  Browse Resources
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Featured Resources Carousel */}
-        {featuredResources.length > 0 && (
-          <div className="mb-8">
-            <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Featured Resources</h2>
-            <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <Carousel 
-                showArrows={true} 
-                showStatus={false} 
-                showThumbs={false}
-                infiniteLoop={true}
-                autoPlay={true}
-                interval={5000}
-                renderArrowPrev={(onClickHandler, hasPrev, label) => (
-                  <button
-                    onClick={onClickHandler}
-                    disabled={!hasPrev}
-                    className={`absolute top-1/2 left-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
-                    aria-label={label}
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                )}
-                renderArrowNext={(onClickHandler, hasNext, label) => (
-                  <button
-                    onClick={onClickHandler}
-                    disabled={!hasNext}
-                    className={`absolute top-1/2 right-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
-                    aria-label={label}
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                )}
-              >
-                {featuredResources.map((resource) => (
-                  <div key={resource.id} className={`h-64 md:h-96 relative ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-0"></div>
-                    <div className="relative z-10 h-full flex flex-col justify-end p-6">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
-                          {resource.duration}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
-                          {resource.type}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-bold text-white mb-2">{resource.title}</h3>
-                      <p className="text-gray-200 mb-4">{resource.description}</p>
-                      <div className="flex space-x-3">
-                        {getActionButton(resource)}
-                        <button
-                          onClick={() => toggleBookmark(resource.id)}
-                          className={`p-2 rounded-full ${bookmarkedResources.includes(resource.id) ? 'bg-pink-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
-                        </button>
-                        <button
-                          onClick={() => addToPlan(resource)}
-                          className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
+              {plannedPractices.length > 0 ? (
+                <div className="space-y-4">
+                  {plannedPractices.map((practice) => (
+                    <div
+                      key={practice.id}
+                      className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{practice.title}</h3>
+                          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{practice.description}</p>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+                              {practice.duration}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+                              {practice.type}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2">
+                          {getActionButton(practice)}
+                          <button
+                            onClick={() => removeFromPlan(practice.id)}
+                            className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-600 text-red-400' : 'hover:bg-gray-100 text-red-500'}`}
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </Carousel>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Calendar className="w-12 h-12 mx-auto mb-4" />
+                  <p className="text-lg">Your planner is empty</p>
+                  <p className="mb-4">Add resources to plan your wellness activities</p>
+                  <button
+                    onClick={() => setShowPlanner(false)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Browse Resources
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )
+        }
+
+        {/* Featured Resources Carousel */}
+        {
+          featuredResources.length > 0 && (
+            <div className="mb-8">
+              <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Featured Resources</h2>
+              <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+                <Carousel
+                  showArrows={true}
+                  showStatus={false}
+                  showThumbs={false}
+                  infiniteLoop={true}
+                  autoPlay={true}
+                  interval={5000}
+                  renderArrowPrev={(onClickHandler, hasPrev, label) => (
+                    <button
+                      onClick={onClickHandler}
+                      disabled={!hasPrev}
+                      className={`absolute top-1/2 left-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
+                      aria-label={label}
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+                  renderArrowNext={(onClickHandler, hasNext, label) => (
+                    <button
+                      onClick={onClickHandler}
+                      disabled={!hasNext}
+                      className={`absolute top-1/2 right-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
+                      aria-label={label}
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+                >
+                  {featuredResources.map((resource) => (
+                    <div key={resource.id} className={`h-64 md:h-96 relative ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-0"></div>
+                      <div className="relative z-10 h-full flex flex-col justify-end p-6">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
+                            {resource.duration}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
+                            {resource.type}
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2">{resource.title}</h3>
+                        <p className="text-gray-200 mb-4">{resource.description}</p>
+                        <div className="flex space-x-3">
+                          {getActionButton(resource)}
+                          <button
+                            onClick={() => toggleBookmark(resource.id)}
+                            className={`p-2 rounded-full ${bookmarkedResources.includes(resource.id) ? 'bg-pink-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          </button>
+                          <button
+                            onClick={() => addToPlan(resource)}
+                            className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+            </div>
+          )
+        }
 
         {/* Resources Grid */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              {selectedMood === 'all' ? 'All Resources' : 
-               selectedMood === 'bookmarked' ? 'Saved Resources' : 
-               `Resources for ${moods.find(m => m.id === selectedMood)?.name}`}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+            <h2 className={`text-2xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-[#2D3142]'}`}>
+              {selectedMood === 'all' ? 'All Resources' :
+                selectedMood === 'bookmarked' ? 'Saved Resources' :
+                  `Resources for ${moods.find(m => m.id === selectedMood)?.name}`}
             </h2>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Showing {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
-            </p>
+            <span className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-[#7C9885]/10 text-[#7C9885]'}`}>
+              {filteredResources.length} {filteredResources.length === 1 ? 'Result' : 'Results'}
+            </span>
           </div>
-          
+
           {filteredResources.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResources.map((resource) => (
-                <div 
-                  key={resource.id} 
-                  className={`rounded-xl border overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow hover:shadow-lg transition-shadow`}
+              {filteredResources.map((resource, i) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  key={resource.id}
+                  className={`rounded-3xl border overflow-hidden ${darkMode ? 'bg-[#2D3142] border-gray-700' : 'bg-white border-[#7C9885]/10'} shadow-sm hover:shadow-xl transition-all duration-300 group`}
                 >
-                  <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{resource.title}</h3>
-                      <div className="flex space-x-2">
+                  <div className={`p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className={`font-extrabold text-lg leading-tight ${darkMode ? 'text-white' : 'text-[#2D3142] group-hover:text-[#7C9885]'} transition-colors`}>{resource.title}</h3>
+                      <div className="flex space-x-2 shrink-0 ml-4">
                         <button
                           onClick={() => toggleBookmark(resource.id)}
-                          className={`p-1 rounded-full ${bookmarkedResources.includes(resource.id) ? 'text-pink-500' : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${bookmarkedResources.includes(resource.id) ? 'bg-pink-50 text-pink-500' : darkMode ? 'bg-gray-800 text-gray-400 hover:text-pink-400' : 'bg-gray-50 text-gray-400 hover:text-pink-500 hover:bg-pink-50'}`}
                         >
-                          <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          <Heart className="w-4 h-4" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
                         </button>
                         <button
                           onClick={() => markCompleted(resource.id)}
-                          className={`p-1 rounded-full ${completedResources.includes(resource.id) ? 'text-green-500' : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${completedResources.includes(resource.id) ? 'bg-green-50 text-green-500' : darkMode ? 'bg-gray-800 text-gray-400 hover:text-green-400' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}
                         >
-                          <CheckCircle className="w-5 h-5" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          <CheckCircle className="w-4 h-4" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
                         </button>
                       </div>
                     </div>
-                    <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {resource.tags.map((tag) => (
-                        <span 
-                          key={tag} 
-                          className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
+                    <p className={`text-[13px] leading-relaxed font-medium mb-4 line-clamp-2 ${darkMode ? 'text-gray-300' : 'text-[#4A4E69]/80'}`}>
+                      {resource.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {(resource.tags || []).map((tag) => (
+                        <span
+                          key={tag}
+                          className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#7C9885]/10 text-[#4A4E69]'}`}
                         >
                           {tag}
                         </span>
                       ))}
                     </div>
-                    
+
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5 text-[11px] font-bold uppercase tracking-wider text-[#4A4E69]/60">
                         {getTypeIcon(resource.type)}
-                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{resource.duration}</span>
+                        <span>{resource.duration}</span>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1">
                         <button
                           onClick={() => openJournalForResource(resource.id)}
-                          className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${darkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-gray-50 text-gray-400 hover:text-[#2D3142] hover:bg-gray-100'}`}
                         >
-                          <Notebook className="w-5 h-5" />
+                          <Notebook className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => addToPlan(resource)}
-                          className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${darkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-gray-50 text-gray-400 hover:text-[#2D3142] hover:bg-gray-100'}`}
                         >
-                          <Plus className="w-5 h-5" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="p-4">
+
+                  <div className={`p-4 ${darkMode ? 'bg-gray-800/50' : 'bg-gray-50/50'}`}>
                     <div className="mb-3">
-                      <h4 className={`text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>WHY THIS HELPS</h4>
-                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.whyHelpful}</p>
+                      <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-[#4A4E69]/50'}`}>WHY THIS HELPS</h4>
+                      <p className={`text-[13px] font-medium leading-relaxed ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/80'}`}>{resource.whyHelpful || 'Provides tools for mental wellbeing.'}</p>
                     </div>
                     <div className="flex justify-between items-center">
                       {getActionButton(resource)}
@@ -1213,7 +1439,7 @@ plannerSnap.forEach(doc => {
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -1229,4 +1455,4 @@ plannerSnap.forEach(doc => {
   );
 };
 
-export default MentalWellnessResources;
+export default MentalWellnessResources;   

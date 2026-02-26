@@ -5,11 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { getAuth, signOut } from "firebase/auth";
 import app from "../../context/firebase/firebase";
+import { useAuth } from "../../src/hooks/useAuth";
 
 export const Header = () => {
+  const { user: currentUser } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const isAdmin = ['admin', 'central_admin', 'overall_admin'].includes(currentUser?.role);
 
   const auth = getAuth(app);
 

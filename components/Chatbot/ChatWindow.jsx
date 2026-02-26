@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, History, Plus } from 'lucide-react';
+import { X, History, Plus, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAuth } from 'firebase/auth';
 import useChat from '../hooks/useChat';
 import ChatInput from './ChatInput';
@@ -10,12 +11,11 @@ import SessionPanel from './SessionPanel';
 import { API_BASE_URL } from '../../src/utils/api';
 // import { decryptText } from '../../src/utils/encryption';
 
-const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
+const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
   const [showHistory, setShowHistory] = useState(true);
-  const [sessions, setSessions] = useState([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const messagesEndRef = useRef(null);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   const {
     messages,
@@ -29,10 +29,10 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
   } = useChat();
 
   useEffect(() => {
-  if (!checkingAuth && !currentUser) {
-    navigate('/auth');
-  }
-}, [checkingAuth, currentUser, navigator]);
+    if (!checkingAuth && !currentUser) {
+      navigate('/auth');
+    }
+  }, [checkingAuth, currentUser, navigator]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,29 +55,11 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
 
 
 
-  
-  const fetchSessions = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/sessions`, {
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch sessions');
-      setSessions(data.sessions || []);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
 
   const handleSelectSession = async (sessionRef) => {
     try {
-      const currentUser = getAuth().currentUser;
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('User not authenticated');
       const idToken = await currentUser.getIdToken();
       const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionRef}`, {
@@ -85,95 +67,94 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load session');
-  
-      // 🔐 Decrypt history
-      // const decryptedHistory = await Promise.all(
-      //   data.session.history.map(async (msg) => ({
-      //     role: msg.role,
-      //     parts: [{ text: await decryptText(msg.parts[0].text) }],
-      //     videos: msg.videos || [],
-      //   }))
-      // );
 
       const history = data.session.history.map((msg) => ({
-      role: msg.role,
-      parts: [{ text: msg.parts[0].text }], 
-      videos: msg.videos || [],
+        role: msg.role,
+        parts: [{ text: msg.parts[0].text }],
+        videos: msg.videos || [],
       }));
-  
+
       loadSession({
         sessionRef: data.session.sessionRef,
         history,
       });
-  
+
       setShowHistory(false);
     } catch (err) {
       console.error('Failed to load session:', err.message);
     }
   };
 
-  const handleDeleteSession = async (sessionRef) => {
-    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
-    try {
-      const currentUser = getAuth().currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const idToken = await currentUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionRef}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      if (response.ok) {
-        setSessions((prev) => prev.filter((s) => s.sessionRef !== sessionRef));
-      } else {
-        console.error('Failed to delete session');
-      }
-    } catch (err) {
-      console.error('Error deleting session:', err);
-    }
-  };
-
   const handleShowHistory = () => {
     setShowHistory(true);
-    fetchSessions();
   };
+
   const handleNewChat = () => {
     clearChat();
     setShowHistory(false);
   };
 
   return (
-    <div className={`w-full h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} flex flex-col font-sans`}>
-      <header className="w-full h-[81px] flex-shrink-0" />
+    <div className={`w-full h-screen pt-24 md:pt-28 ${darkMode ? 'bg-[#1D1F2D]' : 'bg-[#F9FBFF]'} flex flex-col font-sans transition-colors duration-300`}>
+
+      {/* Floating Disclaimer */}
+      <div className="fixed bottom-24 right-6 z-50 flex items-end justify-end">
+        <AnimatePresence>
+          {showDisclaimer && (
+            <motion.div
+              initial={{ opacity: 0, width: 0, x: 20 }}
+              animate={{ opacity: 1, width: 'auto', x: 0 }}
+              exit={{ opacity: 0, width: 0, x: 20 }}
+              className={`mr-4 ${darkMode ? 'bg-yellow-900/80 text-yellow-200 border-yellow-700/50' : 'bg-yellow-50/90 text-yellow-800 border-yellow-200/50'} backdrop-blur-md rounded-2xl shadow-xl overflow-hidden flex whitespace-nowrap border`}
+            >
+              <div className="px-5 py-3 flex items-center space-x-3 text-[11px] font-bold uppercase tracking-widest">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                <span>AI Chatbot — NOT professional guidance. Use at your own risk.</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button
+          onClick={() => setShowDisclaimer(!showDisclaimer)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors backdrop-blur-md border ${showDisclaimer
+            ? darkMode ? 'bg-yellow-600 text-white border-transparent' : 'bg-yellow-400 text-yellow-900 border-transparent'
+            : darkMode ? 'bg-gray-800/50 text-yellow-500 border-yellow-500/20 hover:bg-gray-700/50' : 'bg-white/50 text-yellow-600 border-yellow-200/50 hover:bg-white/80'
+            }`}
+        >
+          {showDisclaimer ? <X className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+        </motion.button>
+      </div>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Side Panel */}
         <aside
           className={`
-            ${showHistory ? 'w-72 p-4' : 'w-0 p-0'}
-            transition-all duration-300 ease-in-out
-            ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}
+            ${showHistory ? 'w-80 p-5' : 'w-0 p-0'}
+            transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+            ${darkMode ? 'bg-[#2D3142]/50 border-gray-700' : 'bg-white/40 backdrop-blur-3xl border-[#7C9885]/10'}
             border-r
             flex flex-col h-full overflow-hidden
+            shadow-[4px_0_24px_-12px_rgba(45,49,66,0.1)] z-10
           `}
         >
           {showHistory && (
             <>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>History</h2>
+              <div className="flex justify-between items-center mb-6 pl-2">
+                <h2 className={`text-sm font-bold tracking-widest uppercase ${darkMode ? 'text-gray-200' : 'text-[#4A4E69]/60'}`}>Session History</h2>
                 <button
                   onClick={() => setShowHistory(false)}
-                  className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-300'}`}
+                  className={`p-2 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-[#4A4E69]/40 hover:text-[#2D3142] hover:bg-white border hover:border-[#7C9885]/20 shadow-sm'}`}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto -mr-2 pr-2">
                 <SessionPanel
-                  sessions={sessions}
                   onSelectSession={handleSelectSession}
-                  onDeleteSession={handleDeleteSession}
-                  isLoading={isLoadingHistory}
                   darkMode={darkMode}
                 />
               </div>
@@ -182,38 +163,46 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
         </aside>
 
         {/* Chat Area */}
-        <main className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-800/80 text-gray-200' : 'bg-white text-gray-900'}`}>
-          {/* Chat Header */}
-          <header className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
-            <div className="flex items-center space-x-3">
+        <main className={`flex-1 flex flex-col relative overflow-hidden ${darkMode ? 'bg-[#1D1F2D] text-gray-200' : 'bg-transparent text-[#2D3142]'}`}>
+
+          {/* Subtle Background Pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#F9FBFF] via-white/40 to-white" />
+
+          <header className={`px-6 py-4 flex items-center justify-between flex-shrink-0 z-10 bg-transparent`}>
+            <div className="flex items-center space-x-4">
               {!showHistory && (
                 <button
                   onClick={handleShowHistory}
-                  className={`p-2 rounded-full ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
+                  className={`p-2.5 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-[#2D3142]' : 'text-[#4A4E69]/60 hover:text-[#2D3142] hover:bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm'}`}
                 >
                   <History size={20} />
                 </button>
               )}
-              <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Assistant
-                {sessionRef && (
-                  <span className={`text-xs ml-2 align-middle font-mono ${
-                    darkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    {sessionRef.split('T')[0]}
+              <div className="flex flex-col">
+                <h1 className={`text-xl font-extrabold tracking-tighter ${darkMode ? 'text-white' : 'text-[#1D1F2D]'}`}>
+                  <span className="text-[#7C9885]">MindWell</span> Intelligence
+                </h1>
+                {sessionRef ? (
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/50'
+                    }`}>
+                    Session / {sessionRef.split('T')[0]}
+                  </span>
+                ) : (
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/50'
+                    }`}>
+                    New Therapeutic Space
                   </span>
                 )}
-              </h1>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleNewChat}
-                className="flex items-center space-x-2 py-2 px-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                className="flex items-center space-x-2 py-2.5 px-4 rounded-2xl text-[12px] uppercase tracking-widest font-bold text-white bg-[#2D3142] hover:bg-[#4A4E69] transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
               >
                 <Plus size={16} />
-                <span>New Chat</span>
+                <span>New Focus</span>
               </button>
               {/* <button
                 onClick={toggleDarkMode}
@@ -226,33 +215,31 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
           </header>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 z-10">
             {messages.length === 0 && !isLoading ? (
-              <div className={`text-center h-full flex flex-col justify-center items-center ${
-                darkMode ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                  darkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+              <div className={`text-center h-full flex flex-col justify-center items-center ${darkMode ? 'text-gray-200' : 'text-gray-900'
                 }`}>
-                  <svg
-                    className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner border ${darkMode ? 'bg-blue-900/50 border-blue-900' : 'bg-white border-[#7C9885]/10'
+                  }`}>
+                  <div className="text-4xl filter drop-shadow-sm">🌱</div>
                 </div>
-                <h2 className="text-2xl font-semibold">How can I help you today?</h2>
-                <p className={`mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Start a new conversation or select one from history.
+                <h2 className="text-3xl font-extrabold text-[#2D3142] tracking-tighter mb-4">
+                  Welcome to <span className="text-[#7C9885]">your space.</span>
+                </h2>
+                <p className={`text-[#4A4E69] max-w-sm mx-auto leading-relaxed font-medium mb-10`}>
+                  I'm your AI companion. Feel free to share your thoughts, explore your emotions, or ask for guidance. This is a judgment-free zone.
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto w-full">
+                  <button onClick={() => sendMessage("I've been feeling overwhelmed lately...")} className={`p-4 rounded-2xl border border-transparent shadow-sm hover:shadow-md text-left transition-all group ${darkMode ? 'bg-[#2D3142] hover:border-blue-500/30' : 'bg-white hover:border-[#7C9885]/20'}`}>
+                    <p className={`font-bold text-sm mb-1 transition-colors ${darkMode ? 'text-gray-200 group-hover:text-blue-400' : 'text-[#2D3142] group-hover:text-[#7C9885]'}`}>Feeling overwhelmed?</p>
+                    <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/60'}`}>Let's untangle those thoughts.</p>
+                  </button>
+                  <button onClick={() => sendMessage("Can you guide me through a breathing exercise?")} className={`p-4 rounded-2xl border border-transparent shadow-sm hover:shadow-md text-left transition-all group ${darkMode ? 'bg-[#2D3142] hover:border-blue-500/30' : 'bg-white hover:border-[#7C9885]/20'}`}>
+                    <p className={`font-bold text-sm mb-1 transition-colors ${darkMode ? 'text-gray-200 group-hover:text-blue-400' : 'text-[#2D3142] group-hover:text-[#7C9885]'}`}>Need a quick reset?</p>
+                    <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/60'}`}>Take a mindful moment.</p>
+                  </button>
+                </div>
               </div>
             ) : (
               messages.map((message, index) => (
@@ -268,9 +255,8 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
             )}
             {isLoading && <LoadingIndicator darkMode={darkMode} />}
             {error && (
-              <div className={`p-3 rounded-lg flex justify-between items-center text-sm ${
-                darkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
-              }`}>
+              <div className={`p-3 rounded-lg flex justify-between items-center text-sm ${darkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+                }`}>
                 <span>⚠️ {error}</span>
                 <button onClick={clearError} className="font-semibold hover:opacity-80">
                   Dismiss
@@ -281,14 +267,12 @@ const ChatWindow = ({ darkMode,currentUser,checkingAuth }) => {
           </div>
 
           {/* Input */}
-          <footer className={`p-4 border-t flex-shrink-0 ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
+          <footer className={`p-4 border-t flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
             <div className="max-w-4xl mx-auto">
               <ChatInput onSendMessage={sendMessage} disabled={isLoading} darkMode={darkMode} />
-              <p className={`text-xs text-center mt-2 ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <p className={`text-xs text-center mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                 AI can make mistakes. Consider checking important information.
               </p>
             </div>

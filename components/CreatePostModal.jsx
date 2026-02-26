@@ -5,8 +5,7 @@ const CreatePostModal = ({
   show,
   onClose,
   isLoading,
-  handlePostSubmit,
-  darkMode
+  handlePostSubmit
 }) => {
   const [content, setContent] = useState("");
   const [mood, setMood] = useState("neutral");

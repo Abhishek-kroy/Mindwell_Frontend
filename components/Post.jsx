@@ -44,6 +44,7 @@ const Post = ({
   deletePost,
   handleReaction,
   setShowReactions,
+  handleEditChange,
   role
 }) => {
   const isLiked = likedPosts.includes(post.id);

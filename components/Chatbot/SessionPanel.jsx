@@ -1,26 +1,14 @@
 import { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
 import SessionList from './SessionList';
 import useSessions from '../hooks/useSessions';
 import { API_BASE_URL } from '../../src/utils/api';
+import { useAuth } from '../../src/hooks/useAuth';
 
 const SessionsPanel = ({ onSelectSession, darkMode }) => {
-    const [idToken, setIdToken] = useState(null);
+    const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
 
-    const { sessions, isLoading, refresh, setSessions } = useSessions(idToken);
-
-    useEffect(() => {
-        const fetchToken = async () => {
-            const auth = getAuth();
-            const user = auth.currentUser;
-            if (user) {
-                const token = await user.getIdToken();
-                setIdToken(token);
-            }
-        };
-        fetchToken();
-    }, []);
+    const { sessions, isLoading, refresh, setSessions } = useSessions(user?.token);
 
     const handleDeleteSession = async (sessionRef) => {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
@@ -56,9 +44,9 @@ const SessionsPanel = ({ onSelectSession, darkMode }) => {
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full p-2 mb-2 rounded ${darkMode
+                className={`w-full px-4 py-3 mb-4 rounded-2xl text-[13px] font-medium transition-all focus:outline-none focus:ring-4 focus:ring-[#7C9885]/10 ${darkMode
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-500'
+                    : 'bg-white border-2 border-transparent focus:border-[#7C9885]/30 text-[#2D3142] placeholder-[#4A4E69]/40 shadow-sm'
                     }`}
             />
             <SessionList
