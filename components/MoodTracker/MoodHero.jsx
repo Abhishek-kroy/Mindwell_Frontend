@@ -23,79 +23,60 @@ const itemVariants = {
 
 const MoodHero = ({ streak = 12 }) => {
     return (
-        <div className="relative w-full h-[500px] mb-16 overflow-hidden rounded-[4rem] group shadow-2xl">
-            {/* Premium Hero Image with Parallax-like Movement */}
-            <motion.div
-                initial={{ scale: 1.1 }}
-                animate={{ scale: 1.05 }}
-                transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
-                className="absolute inset-0 z-0"
-            >
+        <div className="relative w-full h-[280px] overflow-hidden rounded-[2.5rem] bg-white border border-[#2D3142]/5 shadow-[0_4px_20px_-5px_rgba(45,49,66,0.05)] flex items-center">
+            {/* Professional Hero Image - Right Aligned Glow */}
+            <div className="absolute right-0 top-0 bottom-0 w-2/3 z-0">
                 <img
                     src="/moodtracker_hero_premium.png"
-                    alt="Emotional Sanctuary"
-                    className="w-full h-full object-cover filter brightness-90 group-hover:brightness-100 transition-all duration-700"
+                    alt="Sanctuary"
+                    className="w-full h-full object-cover filter brightness-[0.98] contrast-[0.9] opacity-80"
                 />
-                {/* Overlays for depth */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#2D3142]/40 via-transparent to-[#F9FBFF]/20" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F9FBFF]/40 via-transparent to-transparent" />
-            </motion.div>
-
-            {/* Floating Elements for Atmosphere */}
-            <div className="absolute inset-0 z-10 pointer-events-none">
-                <motion.div
-                    animate={{ x: [-30, 30], y: [-20, 20], opacity: [0.1, 0.2, 0.1] }}
-                    transition={{ duration: 15, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                    className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-white blur-[120px] rounded-full"
-                />
-                <motion.div
-                    animate={{ x: [30, -30], y: [20, -20], opacity: [0.05, 0.15, 0.05] }}
-                    transition={{ duration: 18, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                    className="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] bg-[#7C9885] blur-[140px] rounded-full"
-                />
+                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent" />
             </div>
 
-            <div className="relative z-20 h-full flex flex-col justify-center px-10 md:px-20 max-w-5xl">
+            <div className="relative z-10 w-full px-12 md:px-20 grid grid-cols-1 md:grid-cols-2 items-center gap-12">
                 <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-8"
+                    className="flex flex-col gap-4"
                 >
-                    <motion.div variants={itemVariants} className="inline-flex items-center gap-3 px-6 py-2 bg-white/20 backdrop-blur-3xl rounded-full border border-white/40 shadow-xl">
-                        <div className="w-2 h-2 rounded-full bg-[#7C9885] animate-pulse" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#2D3142]">Personal Sanctuary</span>
+                    <motion.div variants={itemVariants} className="inline-flex items-center gap-3 px-4 py-1.5 bg-[#7C9885]/10 rounded-full border border-[#7C9885]/20 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#7C9885]" />
+                        <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#2D3142]">Therapeutic Workspace</span>
                     </motion.div>
 
                     <motion.h1
                         variants={itemVariants}
-                        className="text-5xl md:text-7xl font-bold text-[#2D3142] leading-[1.05] tracking-tighter"
+                        className="text-4xl md:text-5xl font-extrabold text-[#1D1F2D] leading-[1.1] tracking-tighter"
                     >
-                        Nurture Your <br />
-                        <span className="text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.3)]">Inner Peace.</span>
+                        Cultivate Your <span className="text-[#7C9885]">Balance.</span>
                     </motion.h1>
 
                     <motion.p
                         variants={itemVariants}
-                        className="text-xl md:text-2xl text-[#2D3142]/70 font-light max-w-xl leading-relaxed"
+                        className="text-base text-[#4A4E69] font-semibold max-w-sm leading-relaxed opacity-80"
                     >
-                        A gentle space to reflect, track your emotional landscape, and discover paths to balance.
+                        A professional space for mindful reflection and emotional growth.
                     </motion.p>
+                </motion.div>
 
-                    <motion.div variants={itemVariants} className="flex items-center gap-10 pt-6">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4A4E69]/60 mb-2">Mindful Streak</span>
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-white shadow-2xl flex items-center justify-center text-3xl group-hover:rotate-6 transition-transform duration-500">
-                                    🌱
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-3xl font-bold text-[#2D3142]">{streak} Days</span>
-                                    <span className="text-[10px] text-[#7C9885] font-bold uppercase tracking-widest">Consistency is care</span>
-                                </div>
-                            </div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="hidden md:flex justify-end items-center"
+                >
+                    <div className="flex items-center gap-6 bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-sm">
+                        <div className="w-14 h-14 rounded-2xl bg-[#F9FBFF] border border-[#2D3142]/5 flex items-center justify-center text-3xl shadow-inner">
+                            🌱
                         </div>
-                    </motion.div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4A4E69]/60">Mindful Streak</span>
+                            <span className="text-3xl font-extrabold text-[#1D1F2D] tracking-tighter">{streak} Days</span>
+                            <span className="text-[10px] text-[#7C9885] font-extrabold uppercase tracking-wider">Growing Resilience</span>
+                        </div>
+                    </div>
                 </motion.div>
             </div>
         </div>

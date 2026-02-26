@@ -10,15 +10,15 @@ const ActionCard = ({ title, description, icon, onClick, bgColor, textColor, bor
         onClick={onClick}
         className={`w-full text-left p-8 rounded-[2rem] border ${borderColor} ${bgColor} flex flex-col justify-between group transition-all duration-300 shadow-sm hover:shadow-xl`}
     >
-        <div className={`p-4 rounded-2xl w-fit ${textColor} bg-white/50 backdrop-blur-md mb-8 group-hover:rotate-6 transition-transform shadow-sm`}>
+        <div className={`p-4 rounded-2xl w-fit ${textColor} bg-white/40 shadow-sm backdrop-blur-md mb-8 group-hover:rotate-6 transition-transform`}>
             {icon}
         </div>
         <div>
-            <h3 className={`text-xl font-bold ${textColor} mb-2`}>{title}</h3>
-            <p className={`${textColor} opacity-70 text-sm font-light leading-relaxed mb-6`}>{description}</p>
-            <div className={`flex items-center gap-2 font-bold text-sm ${textColor}`}>
-                <span>Interact</span>
-                <div className={`w-8 h-8 rounded-full border ${borderColor} flex items-center justify-center group-hover:bg-white transition-colors`}>
+            <h3 className={`text-2xl font-extrabold text-[#1D1F2D] mb-3 tracking-tighter`}>{title}</h3>
+            <p className={`text-[#4A4E69] font-medium leading-relaxed mb-6 opacity-80 text-base`}>{description}</p>
+            <div className={`flex items-center gap-3 font-extrabold text-sm ${textColor}`}>
+                <span className="uppercase tracking-widest">Interact</span>
+                <div className={`w-8 h-8 rounded-full border-2 ${borderColor} flex items-center justify-center group-hover:bg-white transition-all`}>
                     <ChevronRight className="h-4 w-4" />
                 </div>
             </div>
@@ -69,9 +69,9 @@ const MoodActionCards = ({
                             description="I'd love to understand you on a deeper level. Let's explore your emotional landscape with some gentle, science-backed questions."
                             icon={<Search size={24} />}
                             onClick={onTestClick}
-                            bgColor="bg-[#2D3142]"
-                            textColor="text-white"
-                            borderColor="border-white/10"
+                            bgColor="bg-[#1D1F2D]"
+                            textColor="text-white/90"
+                            borderColor="border-white/5"
                         />
                     </motion.div>
                 )}
@@ -84,10 +84,10 @@ const MoodActionCards = ({
                         exit={{ opacity: 0, scale: 0.9 }}
                     >
                         <ActionCard
-                            title="I have something special for you ✨"
-                            description="Based on our conversations, I've gathered some resources that I think will speak to your heart and help you grow."
+                            title="Chat with your AI Therapist 🤖"
+                            description="I'm here to listen and help you process your thoughts in a safe, judgment-free space."
                             icon={<Activity size={24} />}
-                            onClick={() => navigate('/resources')}
+                            onClick={() => navigate('/chatbot')}
                             bgColor="bg-white"
                             textColor="text-[#4A4E69]"
                             borderColor="border-[#4A4E69]/10"

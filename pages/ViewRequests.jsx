@@ -24,10 +24,13 @@ const ViewRequests = () => {
       return;
     }
 
-    if (!college) return;
+    const endpoint = college
+      ? `${API_BASE_URL}/api/request/college/${encodeURIComponent(college)}?status=${encodeURIComponent(status)}`
+      : `${API_BASE_URL}/api/request/all?status=${encodeURIComponent(status)}`;
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/request/college/${encodeURIComponent(college)}?status=${encodeURIComponent(status)}`, {
+      const res = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${user.token}`
         }
@@ -56,8 +59,8 @@ const ViewRequests = () => {
       return;
     }
 
-    // If user is admin and we have a college, fetch the list
-    if (user && adminRoles.includes(user.role) && college) {
+    // If user is admin, fetch the list (initial load or status change)
+    if (user && adminRoles.includes(user.role)) {
       fetchList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,7 +181,7 @@ const ViewRequests = () => {
                   type="text"
                   value={college}
                   onChange={(e) => setCollege(e.target.value)}
-                  placeholder="Enter college name"
+                  placeholder="Leave empty for all colleges"
                   className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/70 backdrop-blur-sm"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

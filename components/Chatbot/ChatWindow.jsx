@@ -101,22 +101,23 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
         {/* Side Panel */}
         <aside
           className={`
-            ${showHistory ? 'w-72 p-4' : 'w-0 p-0'}
-            transition-all duration-300 ease-in-out
-            ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}
+            ${showHistory ? 'w-80 p-5' : 'w-0 p-0'}
+            transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+            ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FBFF]/80 backdrop-blur-3xl border-[#7C9885]/10'}
             border-r
             flex flex-col h-full overflow-hidden
+            shadow-[4px_0_24px_-12px_rgba(45,49,66,0.1)] z-10
           `}
         >
           {showHistory && (
             <>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>History</h2>
+              <div className="flex justify-between items-center mb-6 pl-2">
+                <h2 className={`text-sm font-bold tracking-widest uppercase ${darkMode ? 'text-gray-200' : 'text-[#4A4E69]/60'}`}>Session History</h2>
                 <button
                   onClick={() => setShowHistory(false)}
-                  className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-300'}`}
+                  className={`p-2 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-[#4A4E69]/40 hover:text-[#2D3142] hover:bg-white border hover:border-[#7C9885]/20 shadow-sm'}`}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto -mr-2 pr-2">
@@ -130,36 +131,48 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
         </aside>
 
         {/* Chat Area */}
-        <main className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-800/80 text-gray-200' : 'bg-white text-gray-900'}`}>
+        <main className={`flex-1 flex flex-col relative overflow-hidden ${darkMode ? 'bg-gray-800/80 text-gray-200' : 'bg-[#f8f9fa] text-gray-900'}`}>
+
+          {/* Subtle Background Pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#F9FBFF] via-white/40 to-white" />
+
           {/* Chat Header */}
-          <header className={`p-4 border-b flex items-center justify-between flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'
+          <header className={`px-6 py-4 flex items-center justify-between flex-shrink-0 z-10 bg-white/60 backdrop-blur-xl border-b ${darkMode ? 'border-gray-700' : 'border-[#7C9885]/10 shadow-sm'
             }`}>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               {!showHistory && (
                 <button
                   onClick={handleShowHistory}
-                  className={`p-2 rounded-full ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
+                  className={`p-2.5 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-[#4A4E69]/60 hover:text-[#2D3142] hover:bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm'}`}
                 >
                   <History size={20} />
                 </button>
               )}
-              <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Assistant
-                {sessionRef && (
-                  <span className={`text-xs ml-2 align-middle font-mono ${darkMode ? 'text-gray-400' : 'text-gray-500'
+              <div className="flex flex-col">
+                <h1 className={`text-xl font-extrabold tracking-tighter ${darkMode ? 'text-white' : 'text-[#1D1F2D]'}`}>
+                  <span className="text-[#7C9885]">MindWell</span> Intelligence
+                </h1>
+                {sessionRef ? (
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/50'
                     }`}>
-                    {sessionRef.split('T')[0]}
+                    Session / {sessionRef.split('T')[0]}
+                  </span>
+                ) : (
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/50'
+                    }`}>
+                    New Therapeutic Space
                   </span>
                 )}
-              </h1>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleNewChat}
-                className="flex items-center space-x-2 py-2 px-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                className="flex items-center space-x-2 py-2.5 px-4 rounded-2xl text-[12px] uppercase tracking-widest font-bold text-white bg-[#2D3142] hover:bg-[#4A4E69] transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
               >
                 <Plus size={16} />
-                <span>New Chat</span>
+                <span>New Focus</span>
               </button>
               {/* <button
                 onClick={toggleDarkMode}
@@ -172,31 +185,31 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
           </header>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 z-10">
             {messages.length === 0 && !isLoading ? (
               <div className={`text-center h-full flex flex-col justify-center items-center ${darkMode ? 'text-gray-200' : 'text-gray-900'
                 }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner border ${darkMode ? 'bg-blue-900/50 border-blue-900' : 'bg-white border-[#7C9885]/10'
                   }`}>
-                  <svg
-                    className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
+                  <div className="text-4xl filter drop-shadow-sm">🌱</div>
                 </div>
-                <h2 className="text-2xl font-semibold">How can I help you today?</h2>
-                <p className={`mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Start a new conversation or select one from history.
+                <h2 className="text-3xl font-extrabold text-[#2D3142] tracking-tighter mb-4">
+                  Welcome to <span className="text-[#7C9885]">your space.</span>
+                </h2>
+                <p className={`text-[#4A4E69] max-w-sm mx-auto leading-relaxed font-medium mb-10`}>
+                  I'm your AI companion. Feel free to share your thoughts, explore your emotions, or ask for guidance. This is a judgment-free zone.
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto w-full">
+                  <button onClick={() => setInput("I've been feeling overwhelmed lately...")} className="p-4 rounded-2xl bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm hover:shadow-md text-left transition-all group">
+                    <p className="font-bold text-[#2D3142] text-sm mb-1 group-hover:text-[#7C9885]">Feeling overwhelmed?</p>
+                    <p className="text-[11px] text-[#4A4E69]/60 font-medium">Let's untangle those thoughts.</p>
+                  </button>
+                  <button onClick={() => setInput("Can you guide me through a breathing exercise?")} className="p-4 rounded-2xl bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm hover:shadow-md text-left transition-all group">
+                    <p className="font-bold text-[#2D3142] text-sm mb-1 group-hover:text-[#7C9885]">Need a quick reset?</p>
+                    <p className="text-[11px] text-[#4A4E69]/60 font-medium">Take a mindful moment.</p>
+                  </button>
+                </div>
               </div>
             ) : (
               messages.map((message, index) => (

@@ -362,75 +362,67 @@ const AdminReportsSystem = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      {/* Futuristic background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-black to-blue-900 opacity-50"></div>
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(6,182,212,0.1),transparent_50%)]"></div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-hidden relative">
+      {/* Soft background accents */}
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.05),transparent_70%)]"></div>
 
-      <div className="relative z-10 p-8 pt-32">
+      <div className="relative z-10 px-8 pt-32">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-10">
           <div className="flex items-center gap-4 mb-2">
-            <ShieldAlert className="h-8 w-8 text-cyan-400" />
-            <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              THREAT DETECTION SYSTEM
+            <ShieldAlert className="h-8 w-8 text-indigo-600" />
+            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+              THREAT DETECTION
             </h1>
           </div>
-          <div className="text-gray-400 font-mono">MONITORING HIGH-RISK CONTENT</div>
+          <div className="text-slate-500 font-medium">Monitoring high-risk content across the network</div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-4">
-              <Zap className="h-6 w-6 text-cyan-400 animate-pulse" />
-              <span className="font-mono text-cyan-400">SCANNING DATABASE...</span>
-            </div>
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Scanning Database...</span>
           </div>
         ) : flaggedPosts.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-green-400 font-mono text-xl">SYSTEM CLEAN</div>
-            <div className="text-gray-500 mt-2">No high-risk content detected</div>
+          <div className="text-center py-32 bg-white/50 rounded-[3rem] border border-dashed border-gray-200">
+            <div className="text-indigo-600 font-bold text-xl mb-2">System Clean</div>
+            <div className="text-slate-400">No high-risk content detected in the network</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {flaggedPosts.map((post) => (
               <div
                 key={post.id}
-                className="group cursor-pointer bg-gray-900/50 border border-gray-700/50 rounded-lg backdrop-blur-sm hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 p-5"
+                className="group cursor-pointer bg-white border border-gray-100 rounded-[2.5rem] hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-500 p-8 relative overflow-hidden"
                 onClick={() => {
                   setActivePost(post);
                   loadIncidentReports(post.id);
                 }}
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-400" />
-                    <span className="font-mono text-sm text-red-400">FLAGGED</span>
+                    <AlertTriangle className="h-5 w-5 text-rose-500" />
+                    <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Flagged Instance</span>
                   </div>
-                  <div className="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-mono">
-                    {post.reportCount} REPORTS
+                  <div className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    {post.reportCount} Reports
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <p className="text-gray-300 line-clamp-3 text-sm leading-relaxed">
-                    {post.content || "No content available"}
+                <div className="space-y-4">
+                  <p className="text-slate-600 line-clamp-3 text-sm leading-relaxed font-medium italic">
+                    "{post.content || "No content available"}"
                   </p>
 
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     <User className="h-3 w-3" />
                     <span>Author: {post.username || "Unknown"}</span>
                   </div>
-
-                  {/* <div className="flex items-center gap-2 text-xs text-yellow-500">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Warnings: {userWarningCount}</span>
-                  </div> */}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between">
-                  <Eye className="h-4 w-4 text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="text-xs font-mono text-gray-500">CLICK TO INVESTIGATE</span>
+                <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between">
+                  <Eye className="h-4 w-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0" />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-indigo-600 transition-colors">Start Investigation</span>
                 </div>
               </div>
             ))}
@@ -439,74 +431,84 @@ const AdminReportsSystem = () => {
 
         {/* Investigation Modal */}
         {activePost && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900/95 border border-gray-600 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden backdrop-blur-sm">
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4 md:p-8">
+            <div className="bg-white rounded-[3.5rem] max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-white flex flex-col">
               {/* Modal Header */}
-              <div className="border-b border-gray-700 p-6">
+              <div className="border-b border-gray-50 p-8 md:p-12">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6 text-red-400" />
-                    <h2 className="text-2xl font-mono text-red-400">INCIDENT ANALYSIS</h2>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-rose-50 rounded-2xl text-rose-600">
+                      <AlertTriangle className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Incident Analysis</h2>
+                      <p className="text-sm text-slate-400 font-medium">Deep inspection of flagged transmission</p>
+                    </div>
                   </div>
-                  <div className="bg-red-500/20 text-red-400 px-3 py-1 rounded font-mono text-sm">
-                    {activePost.reportCount} REPORTS
+                  <div className="bg-rose-50 text-rose-600 px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest">
+                    {activePost.reportCount} Critical Reports
                   </div>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="p-8 md:p-12 overflow-y-auto max-h-[60vh] bg-slate-50/50">
                 {/* Post Content */}
-                <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <h3 className="font-mono text-cyan-400 mb-2">FLAGGED CONTENT:</h3>
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {activePost.content || "No content available"}
+                <div className="mb-10 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Flagged Transmission</h3>
+                  <p className="text-slate-700 text-lg leading-relaxed font-medium italic">
+                    "{activePost.content || "No content available"}"
                   </p>
-                  <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
-                    <User className="h-3 w-3" />
-                    <span>Author: {activePost.username}</span>
-                  </div>
-                  <div className="mt-1 text-xs text-yellow-500 flex items-center gap-2">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Warnings: {userWarningCount}</span>
-                  </div>
-                  <div className="mt-1 text-xs text-blue-500 flex items-center gap-2">
-                    <span>User ID: {activePost.userId}</span>
+
+                  <div className="mt-8 flex flex-wrap gap-6 border-t border-gray-50 pt-6">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <User className="h-3 w-3 text-indigo-500" />
+                      <span>Author: {activePost.username}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <AlertTriangle className="h-3 w-3 text-rose-500" />
+                      <span>Security Warnings: {userWarningCount}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="text-indigo-500">UID:</span>
+                      <span className="font-mono text-xs font-normal lowercase">{activePost.userId}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Reports */}
-                <div className="space-y-4">
-                  <h3 className="font-mono text-cyan-400">INCIDENT REPORTS:</h3>
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] ml-2">Incident Certificates</h3>
                   {incidents.length === 0 ? (
-                    <div className="text-gray-500 font-mono text-sm">No reports loaded</div>
+                    <div className="text-slate-300 font-bold uppercase tracking-widest text-xs py-10 text-center">No reports loaded...</div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {incidents.map((report) => (
                         <div
                           key={report.id}
-                          className="bg-gray-800/50 border border-gray-700 rounded-lg p-4"
+                          className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group"
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                              <span className="font-mono text-red-400">VIOLATION:</span>
-                              <p className="text-gray-300 mt-1">{report.reason}</p>
+                              <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest block mb-1">Violation Type</span>
+                              <p className="text-slate-700 font-bold text-sm">{report.reason}</p>
                             </div>
                             {report.additionalInfo && (
                               <div>
-                                <span className="font-mono text-blue-400">DETAILS:</span>
-                                <p className="text-gray-300 mt-1">{report.additionalInfo}</p>
+                                <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-1">Additional Analysis</span>
+                                <p className="text-slate-600 text-sm italic">"{report.additionalInfo}"</p>
                               </div>
                             )}
-                            <div className="flex items-center gap-2 text-gray-500">
+                            <div className="flex items-center gap-2 text-slate-400 border-t border-gray-50 pt-4 mt-2">
                               <Clock className="h-3 w-3" />
-                              <span className="font-mono text-xs">
+                              <span className="text-[9px] font-black uppercase tracking-widest">
                                 {report.time ? new Date(report.time).toLocaleString() : "N/A"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-green-400">
+                            <div className="flex items-center gap-2 text-indigo-400 border-t border-gray-50 pt-4 mt-2">
                               <User className="h-3 w-3" />
-                              <span className="font-mono text-xs">
+                              <span className="text-[9px] font-black uppercase tracking-widest">
                                 Reported by: {report.reporterName}
                               </span>
                             </div>
@@ -519,47 +521,47 @@ const AdminReportsSystem = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="border-t border-gray-700 p-6">
-                <div className="flex flex-wrap gap-3">
+              <div className="border-t border-gray-50 p-8 md:p-10 bg-white">
+                <div className="flex flex-wrap gap-4">
                   <button
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded font-mono text-sm transition-colors"
+                    className="flex items-center gap-3 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95"
                     onClick={() => executePostDeletion(activePost.id)}
                     disabled={processing}
                   >
                     <Trash2 className="h-4 w-4" />
-                    TERMINATE POST
+                    Terminate Post
                   </button>
 
                   <button
-                    className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white px-4 py-2 rounded font-mono text-sm transition-colors"
+                    className="flex items-center gap-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95"
                     onClick={() => issueWarning(activePost.id)}
                     disabled={processing}
                   >
                     <AlertTriangle className="h-4 w-4" />
-                    ISSUE WARNING
+                    Issue Warning
                   </button>
 
                   <button
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded font-mono text-sm transition-colors"
+                    className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95"
                     onClick={() => markAsReviewed(activePost.id)}
                     disabled={processing}
                   >
                     <CheckCircle className="h-4 w-4" />
-                    MARK REVIEWED
+                    Mark Reviewed
                   </button>
 
                   <button
-                    className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded font-mono text-sm transition-colors ml-auto"
+                    className="flex items-center gap-3 bg-slate-100 hover:bg-slate-200 text-slate-500 px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all ml-auto"
                     onClick={() => setActivePost(null)}
                   >
-                    CLOSE
+                    Abort
                   </button>
                 </div>
 
                 {processing && (
-                  <div className="mt-3 flex items-center gap-2 text-cyan-400">
-                    <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="font-mono text-sm">PROCESSING...</span>
+                  <div className="mt-8 flex items-center gap-3 text-indigo-600 font-black uppercase tracking-[0.2em] text-[10px] justify-center bg-indigo-50 py-4 rounded-2xl animate-pulse">
+                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Executing Command...</span>
                   </div>
                 )}
               </div>

@@ -71,9 +71,9 @@ export const useMoodTracker = () => {
             }
 
             for (const dateStr of dates) {
-                const assessmentSubDocRef = doc(db, "users", user.uid, "moodAssessment", dateStr, "assessment");
-                const assessmentSubDocSnap = await getDoc(assessmentSubDocRef);
-                if (assessmentSubDocSnap.exists()) return true;
+                const assessmentSubCollRef = collection(db, "users", user.uid, "moodAssessment", dateStr, "assessments");
+                const assessmentSnap = await getDocs(assessmentSubCollRef);
+                if (!assessmentSnap.empty) return true;
             }
             return false;
         } catch (error) {
@@ -93,15 +93,16 @@ export const useMoodTracker = () => {
             }
 
             for (const dateStr of dates) {
-                const assessmentSubDocRef = doc(db, "users", user.uid, "moodAssessment", dateStr, "assessment");
-                const assessmentSubDocSnap = await getDoc(assessmentSubDocRef);
+                const assessmentSubCollRef = collection(db, "users", user.uid, "moodAssessment", dateStr, "assessments");
+                const assessmentSnap = await getDocs(assessmentSubCollRef);
 
-                if (assessmentSubDocSnap.exists()) {
+                if (!assessmentSnap.empty) {
+                    const docSnap = assessmentSnap.docs[0];
                     return {
-                        id: assessmentSubDocSnap.id,
+                        id: docSnap.id,
                         date: dateStr,
                         recent: true,
-                        ...assessmentSubDocSnap.data()
+                        ...docSnap.data()
                     };
                 }
             }
@@ -114,14 +115,15 @@ export const useMoodTracker = () => {
                 let latestDate = null;
 
                 for (const dateDoc of assessmentSnapshot.docs) {
-                    const assessmentSubDocRef = doc(db, "users", user.uid, "moodAssessment", dateDoc.id, "assessment");
-                    const assessmentSubDocSnap = await getDoc(assessmentSubDocRef);
+                    const assessmentSubCollRef = collection(db, "users", user.uid, "moodAssessment", dateDoc.id, "assessments");
+                    const assessmentSnap = await getDocs(assessmentSubCollRef);
 
-                    if (assessmentSubDocSnap.exists()) {
+                    if (!assessmentSnap.empty) {
+                        const docSnap = assessmentSnap.docs[0];
                         const assessmentDate = new Date(dateDoc.id);
                         if (!latestDate || assessmentDate > latestDate) {
                             latestDate = assessmentDate;
-                            latestAssessment = { id: assessmentSubDocSnap.id, date: dateDoc.id, recent: false, ...assessmentSubDocSnap.data() };
+                            latestAssessment = { id: docSnap.id, date: dateDoc.id, recent: false, ...docSnap.data() };
                         }
                     }
                 }
