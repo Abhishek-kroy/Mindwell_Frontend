@@ -95,73 +95,78 @@ function AppShell() {
     return () => unsubscribe();
   }, []);
 
-  // Add "/psychiatrist" to the array to hide header on psychiatrist dashboard
-  const hideHeaderOnPaths = ["/psychiatrist-auth", "/admin-auth", "/psychiatrist", "/community"];
+  // Catch-all route for global redirects
+  useEffect(() => {
+    if (!checkingAuth && currentUser) {
+      const adminAllowedPaths = ["/community", "/view-requests", "/admin-reports", "/auth", "/my-chats"];
+      // Also restrict from root path /
+      const isAdminRestricted = !adminAllowedPaths.includes(location.pathname) || location.pathname === "/";
+      const isOverallAdmin = ['admin', 'central_admin', 'overall_admin'].includes(currentUser?.role);
+
+      if (isOverallAdmin && isAdminRestricted) {
+        console.log("🚫 Admin access restricted. Redirecting to /view-requests from:", location.pathname);
+        navigate("/view-requests", { replace: true });
+      }
+    }
+  }, [currentUser, location.pathname, checkingAuth, navigate]);
 
   return (
     <>
       {!hideHeaderOnPaths.includes(location.pathname) && <Header />}
       <main>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/test/*" element={<Test />} />
-            <Route path="/therapies" element={<MoodDashboard user={currentUser} />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/resourcess" element={<Resources />} />
-            <Route path="/resources" element={<MentalWellnessResources />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/cookie-policy" element={<CookiePolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/psychiatrist-auth" element={<PsychiatristAuth />} />
-            <Route path="/admin-auth" element={<AdminAuth />} />
-            <Route path="/admin-reports" element={<AdminReportsPage />} />
-            <Route
-              path="/psychiatrist"
-              element={
-                <ProtectedPsychiatristRoute>
-                  <PsychiatristDashboard />
-                </ProtectedPsychiatristRoute>
-              }
-            />
-            <Route
-              path="/add-request"
-              element={
-                <ProtectedStudentRoute>
-                  <AddRequest />
-                </ProtectedStudentRoute>
-              }
-            />
-            <Route
-              path="/my-chats"
-              element={
-                <ProtectedStudentRoute>
-                  <MyChats userId={currentUser?.email} />
-                </ProtectedStudentRoute>
-              }
-            />
-            <Route
-              path="/view-requests"
-              element={
-                <ProtectedAdminRoute>
-                  <ViewRequests />
-                </ProtectedAdminRoute>
-              }
-            />
-            <Route
-              path="/chatbot"
-              element={
-                <ChatWindow
-                  currentUser={currentUser}
-                  checkingAuth={checkingAuth}
-                  darkMode={darkMode}
-                />
-              }
-            />
-            <Route path="/suggested-resources" element={<SuggestedResources />} />
-          </Routes>
-        </Suspense>
+        {checkingAuth ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/test" element={<Test />} />
+              <Route path="/therapies" element={<MoodDashboard user={currentUser} />} />
+              <Route path="/auth" element={<UnifiedAuth />} />
+
+              <Route path="/community" element={<Community />} />
+              <Route path="/resourcess" element={<Resources />} />
+              <Route path="/resources" element={<MentalWellnessResources />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/admin-reports" element={<AdminReportsPage />} />
+              <Route
+                path="/my-chats"
+                element={
+                  currentUser ? <MyChats userId={currentUser.uid} /> : <Navigate to="/auth" replace />
+                }
+              />
+              {/* Unified Hub Redirections */}
+              <Route path="/psychiatrist" element={<Navigate to="/my-chats" replace />} />
+              <Route path="/add-request" element={<Navigate to="/my-chats" replace />} />
+              <Route
+                path="/view-requests"
+                element={
+                  <ProtectedAdminRoute>
+                    <ViewRequests />
+                  </ProtectedAdminRoute>
+                }
+              />
+              <Route
+                path="/chatbot"
+                element={
+                  <ChatWindow
+                    currentUser={currentUser}
+                    checkingAuth={checkingAuth}
+                    darkMode={darkMode}
+                  />
+                }
+              />
+              <Route path="/suggested-resources" element={<SuggestedResources />} />
+
+              {/* Catch-all route for global redirects */}
+              <Route path="*" element={<Navigate to={currentUser ? "/" : "/auth"} replace />} />
+            </Routes>
+          </Suspense>
+        )}
       </main>
     </>
   );

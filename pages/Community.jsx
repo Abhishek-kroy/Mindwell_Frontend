@@ -69,24 +69,6 @@ export default function CommunityPage() {
     angry: { icon: <Angry className="h-4 w-4" />, color: "text-red-600" }
   };
 
-  // Set system default mode on initial load
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setDarkMode(mediaQuery.matches);
-
-    const handleChange = (e) => setDarkMode(e.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
 
   // Get current user on component mount
   useEffect(() => {
@@ -333,8 +315,17 @@ export default function CommunityPage() {
     try {
       const postRef = doc(db, "posts", postId);
       const userRef = doc(db, "users", currentUser.id);
+      const isCurrentlyLiked = likedPosts.includes(postId);
 
-      if (likedPosts.includes(postId)) {
+      // Optimistic Local State Update
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === postId) {
+          return { ...p, likes: isCurrentlyLiked ? (p.likes - 1 || 0) : (p.likes + 1 || 1) };
+        }
+        return p;
+      }));
+
+      if (isCurrentlyLiked) {
         await updateDoc(postRef, {
           likes: increment(-1)
         });
@@ -581,7 +572,7 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className={`min-h-screen pt-0 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen pt-32 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar and content here */}
         {/* Sidebar - Bookmarks and Navigation */}
@@ -593,7 +584,6 @@ export default function CommunityPage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           currentUser={currentUser}
-          darkMode={darkMode}
           handleLogout={() => signOut(auth)}
         />
 
@@ -685,8 +675,8 @@ export default function CommunityPage() {
                         deletePost={deletePost}
                         handleReaction={handleReaction}
                         setShowReactions={setShowReactions}
+                        handleEditChange={handleEditChange}
                       />
-
                     ))}
                   </div>
 
