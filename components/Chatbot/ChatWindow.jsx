@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, History, Plus } from 'lucide-react';
+import { X, History, Plus, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAuth } from 'firebase/auth';
 import useChat from '../hooks/useChat';
 import ChatInput from './ChatInput';
@@ -12,6 +13,7 @@ import { API_BASE_URL } from '../../src/utils/api';
 
 const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
   const [showHistory, setShowHistory] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
@@ -93,8 +95,38 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
   };
 
   return (
-    <div className={`w-full h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} flex flex-col font-sans`}>
-      <header className="w-full h-[81px] flex-shrink-0" />
+    <div className={`w-full h-screen pt-24 md:pt-28 ${darkMode ? 'bg-[#1D1F2D]' : 'bg-[#F9FBFF]'} flex flex-col font-sans transition-colors duration-300`}>
+
+      {/* Floating Disclaimer */}
+      <div className="fixed bottom-24 right-6 z-50 flex items-end justify-end">
+        <AnimatePresence>
+          {showDisclaimer && (
+            <motion.div
+              initial={{ opacity: 0, width: 0, x: 20 }}
+              animate={{ opacity: 1, width: 'auto', x: 0 }}
+              exit={{ opacity: 0, width: 0, x: 20 }}
+              className={`mr-4 ${darkMode ? 'bg-yellow-900/80 text-yellow-200 border-yellow-700/50' : 'bg-yellow-50/90 text-yellow-800 border-yellow-200/50'} backdrop-blur-md rounded-2xl shadow-xl overflow-hidden flex whitespace-nowrap border`}
+            >
+              <div className="px-5 py-3 flex items-center space-x-3 text-[11px] font-bold uppercase tracking-widest">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                <span>AI Chatbot — NOT professional guidance. Use at your own risk.</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button
+          onClick={() => setShowDisclaimer(!showDisclaimer)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors backdrop-blur-md border ${showDisclaimer
+            ? darkMode ? 'bg-yellow-600 text-white border-transparent' : 'bg-yellow-400 text-yellow-900 border-transparent'
+            : darkMode ? 'bg-gray-800/50 text-yellow-500 border-yellow-500/20 hover:bg-gray-700/50' : 'bg-white/50 text-yellow-600 border-yellow-200/50 hover:bg-white/80'
+            }`}
+        >
+          {showDisclaimer ? <X className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+        </motion.button>
+      </div>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
@@ -103,7 +135,7 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
           className={`
             ${showHistory ? 'w-80 p-5' : 'w-0 p-0'}
             transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-            ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FBFF]/80 backdrop-blur-3xl border-[#7C9885]/10'}
+            ${darkMode ? 'bg-[#2D3142]/50 border-gray-700' : 'bg-white/40 backdrop-blur-3xl border-[#7C9885]/10'}
             border-r
             flex flex-col h-full overflow-hidden
             shadow-[4px_0_24px_-12px_rgba(45,49,66,0.1)] z-10
@@ -131,20 +163,18 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
         </aside>
 
         {/* Chat Area */}
-        <main className={`flex-1 flex flex-col relative overflow-hidden ${darkMode ? 'bg-gray-800/80 text-gray-200' : 'bg-[#f8f9fa] text-gray-900'}`}>
+        <main className={`flex-1 flex flex-col relative overflow-hidden ${darkMode ? 'bg-[#1D1F2D] text-gray-200' : 'bg-transparent text-[#2D3142]'}`}>
 
           {/* Subtle Background Pattern */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
+          <div className="absolute inset-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#F9FBFF] via-white/40 to-white" />
 
-          {/* Chat Header */}
-          <header className={`px-6 py-4 flex items-center justify-between flex-shrink-0 z-10 bg-white/60 backdrop-blur-xl border-b ${darkMode ? 'border-gray-700' : 'border-[#7C9885]/10 shadow-sm'
-            }`}>
+          <header className={`px-6 py-4 flex items-center justify-between flex-shrink-0 z-10 bg-transparent`}>
             <div className="flex items-center space-x-4">
               {!showHistory && (
                 <button
                   onClick={handleShowHistory}
-                  className={`p-2.5 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-[#4A4E69]/60 hover:text-[#2D3142] hover:bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm'}`}
+                  className={`p-2.5 rounded-2xl transition-all ${darkMode ? 'text-gray-400 hover:bg-[#2D3142]' : 'text-[#4A4E69]/60 hover:text-[#2D3142] hover:bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm'}`}
                 >
                   <History size={20} />
                 </button>
@@ -201,13 +231,13 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto w-full">
-                  <button onClick={() => setInput("I've been feeling overwhelmed lately...")} className="p-4 rounded-2xl bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm hover:shadow-md text-left transition-all group">
-                    <p className="font-bold text-[#2D3142] text-sm mb-1 group-hover:text-[#7C9885]">Feeling overwhelmed?</p>
-                    <p className="text-[11px] text-[#4A4E69]/60 font-medium">Let's untangle those thoughts.</p>
+                  <button onClick={() => sendMessage("I've been feeling overwhelmed lately...")} className={`p-4 rounded-2xl border border-transparent shadow-sm hover:shadow-md text-left transition-all group ${darkMode ? 'bg-[#2D3142] hover:border-blue-500/30' : 'bg-white hover:border-[#7C9885]/20'}`}>
+                    <p className={`font-bold text-sm mb-1 transition-colors ${darkMode ? 'text-gray-200 group-hover:text-blue-400' : 'text-[#2D3142] group-hover:text-[#7C9885]'}`}>Feeling overwhelmed?</p>
+                    <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/60'}`}>Let's untangle those thoughts.</p>
                   </button>
-                  <button onClick={() => setInput("Can you guide me through a breathing exercise?")} className="p-4 rounded-2xl bg-white border border-transparent hover:border-[#7C9885]/20 shadow-sm hover:shadow-md text-left transition-all group">
-                    <p className="font-bold text-[#2D3142] text-sm mb-1 group-hover:text-[#7C9885]">Need a quick reset?</p>
-                    <p className="text-[11px] text-[#4A4E69]/60 font-medium">Take a mindful moment.</p>
+                  <button onClick={() => sendMessage("Can you guide me through a breathing exercise?")} className={`p-4 rounded-2xl border border-transparent shadow-sm hover:shadow-md text-left transition-all group ${darkMode ? 'bg-[#2D3142] hover:border-blue-500/30' : 'bg-white hover:border-[#7C9885]/20'}`}>
+                    <p className={`font-bold text-sm mb-1 transition-colors ${darkMode ? 'text-gray-200 group-hover:text-blue-400' : 'text-[#2D3142] group-hover:text-[#7C9885]'}`}>Need a quick reset?</p>
+                    <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/60'}`}>Take a mindful moment.</p>
                   </button>
                 </div>
               </div>

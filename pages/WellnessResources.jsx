@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Heart, Play, Pause, Book, Smartphone, Clock, Calendar, Download, Phone, MessageCircle, Globe, ChevronLeft, ChevronRight, Star, Check, Volume2, VolumeX, SkipBack, SkipForward, User, Menu, X, Plus, Minus, CheckCircle, Share2, Bell, Notebook, Award, Sun, Moon } from 'lucide-react';
+import { Search, Filter, Heart, Play, Pause, Book, Smartphone, Clock, Calendar, Download, Phone, MessageCircle, Globe, ChevronLeft, ChevronRight, Star, Check, Volume2, VolumeX, SkipBack, SkipForward, User, Menu, X, Plus, Minus, CheckCircle, Share2, Bell, Notebook, Award, Sun, Moon, Sparkles, ArrowRight } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { useMemo } from 'react';
@@ -53,10 +55,17 @@ const MentalWellnessResources = () => {
     mood: 'happy',
     url: '',
     description: '',
-    whyHelpful: '',
     duration: '5-10 min',
     tags: []
   });
+  const [showCrisisHelp, setShowCrisisHelp] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Recommended Section Logic
+  const todayDateStr = new Date().toLocaleDateString('en-CA');
+  const todaysMoodEntry = moodHistory.find(entry => entry.date === todayDateStr);
+  const recommendedMood = todaysMoodEntry ? todaysMoodEntry.latestMood : null;
 
   const audioRef = useRef(null);
   const notificationRef = useRef(null);
@@ -200,9 +209,12 @@ const MentalWellnessResources = () => {
 
       // Load mood history
       const moodHistoryRef = collection(db, 'users', userId, 'dailyMood');
-      const moodHistoryQuery = query(moodHistoryRef, orderBy('date', 'desc'));
-      const moodHistorySnap = await getDocs(moodHistoryQuery);
-      setMoodHistory(moodHistorySnap.docs.map(doc => doc.data()));
+      const moodHistorySnap = await getDocs(query(moodHistoryRef));
+      const historyData = moodHistorySnap.docs.map(doc => ({
+        ...doc.data(),
+        date: doc.id
+      }));
+      setMoodHistory(historyData);
 
       // Load settings
       const settingsRef = doc(db, 'users', userId, 'preferences', 'settings');
@@ -215,7 +227,7 @@ const MentalWellnessResources = () => {
       }
 
       // Calculate streak
-      calculateStreak(moodHistorySnap.docs.map(doc => doc.data()));
+      calculateStreak(historyData);
 
       // Load dynamic resources
       const communityRef = collection(db, 'community_resources');
@@ -650,29 +662,56 @@ const MentalWellnessResources = () => {
   }
 
   return (
-    <div className={`min-h-screen transition-colors relative top-20 duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gradient-to-br from-blue-50 to-purple-50 text-gray-800'}`}>
+    <div className={`min-h-screen pt-20 transition-colors duration-300 ${darkMode ? 'bg-[#1D1F2D] text-gray-100' : 'bg-[#F9FBFF] text-[#2D3142]'}`}>
       {/* Toast Notifications */}
       <ToastContainer position="top-right" theme={darkMode ? 'dark' : 'light'} />
 
-      {/* Crisis Help Bar */}
-      <div className="bg-red-600 text-white p-3 text-center top-0 z-50">
-        <div className="flex items-center justify-center space-x-4 text-sm">
-          <span className="font-medium">Need urgent help? You're not alone.</span>
-          <div className="flex items-center space-x-4">
-            <a href="tel:988" className="flex items-center space-x-1 hover:underline">
-              <Phone className="w-4 h-4" />
-              <span>Call 988</span>
-            </a>
-            <a href="sms:741741" className="flex items-center space-x-1 hover:underline">
-              <MessageCircle className="w-4 h-4" />
-              <span>Text HOME to 741741</span>
-            </a>
-            <a href="https://www.nami.org/help" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 hover:underline">
-              <Globe className="w-4 h-4" />
-              <span>NAMI Support</span>
-            </a>
-          </div>
-        </div>
+      {/* Floating Crisis Help */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-end justify-end">
+        <AnimatePresence>
+          {showCrisisHelp && (
+            <motion.div
+              initial={{ opacity: 0, width: 0, x: 20 }}
+              animate={{ opacity: 1, width: 'auto', x: 0 }}
+              exit={{ opacity: 0, width: 0, x: 20 }}
+              className="mr-4 bg-red-600 text-white rounded-2xl shadow-2xl overflow-hidden flex whitespace-nowrap"
+            >
+              <div className="px-6 py-4 flex items-center space-x-6">
+                <span className="font-bold text-sm uppercase tracking-wider">Urgent Help:</span>
+                <a href="tel:988" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <Phone className="w-4 h-4" />
+                  <span className="font-semibold">988</span>
+                </a>
+                <div className="w-px h-4 bg-red-500/50"></div>
+                <a href="sms:741741" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="font-semibold">Text HOME</span>
+                </a>
+                <div className="w-px h-4 bg-red-500/50"></div>
+                <a href="https://www.nami.org/help" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 hover:text-red-200 transition-colors">
+                  <Globe className="w-4 h-4" />
+                  <span className="font-semibold">NAMI Support</span>
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button
+          onClick={() => setShowCrisisHelp(!showCrisisHelp)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-colors ${showCrisisHelp ? 'bg-red-700 text-white' : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+            }`}
+        >
+          {showCrisisHelp ? <X className="w-6 h-6" /> : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+            </svg>
+          )}
+        </motion.button>
       </div>
 
       {/* Audio Player */}
@@ -968,87 +1007,140 @@ const MentalWellnessResources = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="flex justify-between items-center mb-8">
-          <button
-            onClick={() => setShowMobileMenu(true)}
-            className="md:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+      {/* Main Content */}
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 transition-all duration-300 ${currentlyPlaying ? 'pb-32' : 'pb-12'}`}>
+
+        {/* Hero Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-2"
           >
-            <Menu className="w-6 h-6" />
-          </button>
-
-          <div className="text-center md:text-left">
-            <h1 className={`text-3xl md:text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} mb-2`}>Mental Wellness Resources</h1>
-            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Tools for your mental health journey
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-[#7C9885]/20 shadow-sm mb-4">
+              <Sparkles className="w-4 h-4 text-[#7C9885]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#4A4E69]">Curated For You</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-[#1D1F2D] drop-shadow-sm">
+              MindWell <span className="text-[#7C9885]">Resources</span>
+            </h1>
+            <p className="text-[#4A4E69] text-lg font-medium max-w-2xl leading-relaxed opacity-80 mt-2">
+              Explore your personalized toolkit of exercises, articles, and guided sessions.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-3">
+
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`p-4 rounded-2xl ${darkMode ? 'bg-gray-800 text-yellow-500 hover:bg-gray-700' : 'bg-white text-[#4A4E69] hover:text-[#2D3142] hover:bg-gray-50 border border-transparent hover:border-[#7C9885]/20'} shadow-sm transition-all`}
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-
-            <div className="flex items-center space-x-2">
-              <Bell className="w-5 h-5" />
-              <div className="flex items-center">
-                <input
-                  type="time"
-                  value={notificationTime}
-                  onChange={(e) => setNotificationTime(e.target.value)}
-                  className="px-2 py-1 border rounded w-28"
-                  disabled={!notificationEnabled}
-                />
-                <button
-                  onClick={toggleNotificationSetting}
-                  className={`ml-2 p-1 rounded-full ${notificationEnabled ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-                >
-                  {notificationEnabled ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {user ? (
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                <User className="w-5 h-5" />
-              </div>
-            ) : (
-              <button
-                onClick={() => signInWithGoogle()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </header>
-
-        {/* Mood Selector */}
-        <div className="mb-8">
-          <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>How are you feeling today?</h2>
-          <div className="flex overflow-x-auto pb-4 space-x-3">
-            {moods.map((mood) => (
-              <button
-                key={mood.id}
-                onClick={() => setSelectedMood(mood.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl min-w-[100px] transition-all ${selectedMood === mood.id ?
-                  `${mood.color} text-white shadow-lg transform scale-105` :
-                  darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-100'} shadow`}
-              >
-                <span className="text-2xl mb-1">{mood.icon}</span>
-                <span className="text-sm font-medium">{mood.name}</span>
-              </button>
-            ))}
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        {/* ✨ NEW section: Recommended Resources OR Mood Prompt ✨ */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
+            {recommendedMood ? (
+              // Case A: Mood is logged today
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-2xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-[#2D3142]'}`}>
+                    Recommended for You
+                  </h2>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#7C9885] bg-[#7C9885]/10 px-3 py-1 rounded-full">
+                    Based on your check-in ({moods.find(m => m.id === recommendedMood)?.name || 'Mood'})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {allResources
+                    .filter(res => res.mood === recommendedMood || res.tags.includes(recommendedMood))
+                    .slice(0, 3)
+                    .map((resource, i) => (
+                      <motion.div
+                        key={`rec-${resource.id}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className={`rounded-3xl border overflow-hidden ${darkMode ? 'bg-[#2D3142] border-gray-700' : 'bg-white border-[#7C9885]/10'} shadow-sm hover:shadow-xl transition-all duration-300 group`}
+                      >
+                        <div className={`p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className={`font-extrabold text-lg leading-tight ${darkMode ? 'text-white' : 'text-[#2D3142] group-hover:text-[#7C9885]'} transition-colors`}>
+                              {resource.title}
+                            </h3>
+                            <div className="flex space-x-2 shrink-0 ml-4">
+                              <button onClick={(e) => { e.stopPropagation(); toggleBookmark(resource.id); }} className={`p-2 rounded-xl transition-colors ${bookmarkedResources.includes(resource.id) ? 'bg-pink-50 text-pink-500' : 'bg-gray-50 text-gray-400 hover:text-pink-500 hover:bg-pink-50'}`}>
+                                <Heart className="w-4 h-4" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); markCompleted(resource.id); }} className={`p-2 rounded-xl transition-colors ${completedResources.includes(resource.id) ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}>
+                                <CheckCircle className="w-4 h-4" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[13px] leading-relaxed font-medium text-[#4A4E69]/80 mb-4 line-clamp-2">
+                            {resource.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1.5 text-[11px] font-bold uppercase tracking-wider text-[#4A4E69]/60">
+                              {getTypeIcon(resource.type)}
+                              <span>{resource.duration}</span>
+                            </div>
+                            <div className="flex space-x-1">
+                              {getActionButton(resource)}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  {allResources.filter(res => res.mood === recommendedMood || res.tags.includes(recommendedMood)).length === 0 && (
+                    <div className="col-span-full p-8 text-center rounded-3xl border border-dashed border-[#7C9885]/30 bg-[#7C9885]/5">
+                      <p className="text-[#4A4E69] font-medium">No specific recommendations found for your current mood right now. Browse our library below!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Case B: No mood logged today
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-[#2D3142] p-8 md:p-12 shadow-2xl group">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#7C9885]/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:scale-110 transition-transform duration-1000" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="space-y-4 max-w-xl text-center md:text-left">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+                      How are you feeling <span className="text-[#7C9885]">today?</span>
+                    </h2>
+                    <p className="text-gray-300 font-medium leading-relaxed">
+                      Take a quick Mood Check-in to unlock personalized exercises, articles, and tools selected specifically to support you right now.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/therapies')}
+                    className="flex-shrink-0 flex items-center gap-3 px-8 py-4 bg-white text-[#2D3142] rounded-full font-extrabold hover:bg-[#F9FBFF] hover:scale-105 transition-all shadow-xl hover:shadow-[#7C9885]/20"
+                  >
+                    <span>Log Mood Here</span>
+                    <div className="w-8 h-8 rounded-full bg-[#2D3142]/5 flex items-center justify-center">
+                      <ArrowRight className="w-4 h-4 text-[#7C9885] group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Mood Selector */}
+        < div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div className="relative flex-1 md:max-w-md">
               <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
@@ -1112,186 +1204,195 @@ const MentalWellnessResources = () => {
               )}
             </div>
           </div>
-        </div>
+        </div >
 
         {/* Planner Section */}
-        {showPlanner && (
-          <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>My Wellness Planner</h2>
-              <button
-                onClick={() => setShowPlanner(false)}
-                className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {plannedPractices.length > 0 ? (
-              <div className="space-y-4">
-                {plannedPractices.map((practice) => (
-                  <div
-                    key={practice.id}
-                    className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{practice.title}</h3>
-                        <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{practice.description}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
-                            {practice.duration}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
-                            {practice.type}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-2">
-                        {getActionButton(practice)}
-                        <button
-                          onClick={() => removeFromPlan(practice.id)}
-                          className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-600 text-red-400' : 'hover:bg-gray-100 text-red-500'}`}
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Calendar className="w-12 h-12 mx-auto mb-4" />
-                <p className="text-lg">Your planner is empty</p>
-                <p className="mb-4">Add resources to plan your wellness activities</p>
+        {
+          showPlanner && (
+            <div className={`rounded-xl shadow-lg p-6 mb-8 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>My Wellness Planner</h2>
                 <button
                   onClick={() => setShowPlanner(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 >
-                  Browse Resources
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Featured Resources Carousel */}
-        {featuredResources.length > 0 && (
-          <div className="mb-8">
-            <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Featured Resources</h2>
-            <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <Carousel
-                showArrows={true}
-                showStatus={false}
-                showThumbs={false}
-                infiniteLoop={true}
-                autoPlay={true}
-                interval={5000}
-                renderArrowPrev={(onClickHandler, hasPrev, label) => (
-                  <button
-                    onClick={onClickHandler}
-                    disabled={!hasPrev}
-                    className={`absolute top-1/2 left-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
-                    aria-label={label}
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                )}
-                renderArrowNext={(onClickHandler, hasNext, label) => (
-                  <button
-                    onClick={onClickHandler}
-                    disabled={!hasNext}
-                    className={`absolute top-1/2 right-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
-                    aria-label={label}
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                )}
-              >
-                {featuredResources.map((resource) => (
-                  <div key={resource.id} className={`h-64 md:h-96 relative ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-0"></div>
-                    <div className="relative z-10 h-full flex flex-col justify-end p-6">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
-                          {resource.duration}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
-                          {resource.type}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-bold text-white mb-2">{resource.title}</h3>
-                      <p className="text-gray-200 mb-4">{resource.description}</p>
-                      <div className="flex space-x-3">
-                        {getActionButton(resource)}
-                        <button
-                          onClick={() => toggleBookmark(resource.id)}
-                          className={`p-2 rounded-full ${bookmarkedResources.includes(resource.id) ? 'bg-pink-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
-                        </button>
-                        <button
-                          onClick={() => addToPlan(resource)}
-                          className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
+              {plannedPractices.length > 0 ? (
+                <div className="space-y-4">
+                  {plannedPractices.map((practice) => (
+                    <div
+                      key={practice.id}
+                      className={`p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{practice.title}</h3>
+                          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{practice.description}</p>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+                              {practice.duration}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-600 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
+                              {practice.type}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2">
+                          {getActionButton(practice)}
+                          <button
+                            onClick={() => removeFromPlan(practice.id)}
+                            className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-600 text-red-400' : 'hover:bg-gray-100 text-red-500'}`}
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </Carousel>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Calendar className="w-12 h-12 mx-auto mb-4" />
+                  <p className="text-lg">Your planner is empty</p>
+                  <p className="mb-4">Add resources to plan your wellness activities</p>
+                  <button
+                    onClick={() => setShowPlanner(false)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Browse Resources
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )
+        }
+
+        {/* Featured Resources Carousel */}
+        {
+          featuredResources.length > 0 && (
+            <div className="mb-8">
+              <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Featured Resources</h2>
+              <div className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+                <Carousel
+                  showArrows={true}
+                  showStatus={false}
+                  showThumbs={false}
+                  infiniteLoop={true}
+                  autoPlay={true}
+                  interval={5000}
+                  renderArrowPrev={(onClickHandler, hasPrev, label) => (
+                    <button
+                      onClick={onClickHandler}
+                      disabled={!hasPrev}
+                      className={`absolute top-1/2 left-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
+                      aria-label={label}
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+                  renderArrowNext={(onClickHandler, hasNext, label) => (
+                    <button
+                      onClick={onClickHandler}
+                      disabled={!hasNext}
+                      className={`absolute top-1/2 right-2 z-10 transform -translate-y-1/2 p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-100 text-gray-800'} shadow`}
+                      aria-label={label}
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+                >
+                  {featuredResources.map((resource) => (
+                    <div key={resource.id} className={`h-64 md:h-96 relative ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-0"></div>
+                      <div className="relative z-10 h-full flex flex-col justify-end p-6">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
+                            {resource.duration}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
+                            {resource.type}
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2">{resource.title}</h3>
+                        <p className="text-gray-200 mb-4">{resource.description}</p>
+                        <div className="flex space-x-3">
+                          {getActionButton(resource)}
+                          <button
+                            onClick={() => toggleBookmark(resource.id)}
+                            className={`p-2 rounded-full ${bookmarkedResources.includes(resource.id) ? 'bg-pink-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          </button>
+                          <button
+                            onClick={() => addToPlan(resource)}
+                            className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+            </div>
+          )
+        }
 
         {/* Resources Grid */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+            <h2 className={`text-2xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-[#2D3142]'}`}>
               {selectedMood === 'all' ? 'All Resources' :
                 selectedMood === 'bookmarked' ? 'Saved Resources' :
                   `Resources for ${moods.find(m => m.id === selectedMood)?.name}`}
             </h2>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Showing {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
-            </p>
+            <span className={`text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-[#7C9885]/10 text-[#7C9885]'}`}>
+              {filteredResources.length} {filteredResources.length === 1 ? 'Result' : 'Results'}
+            </span>
           </div>
 
           {filteredResources.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResources.map((resource) => (
-                <div
+              {filteredResources.map((resource, i) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
                   key={resource.id}
-                  className={`rounded-xl border overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow hover:shadow-lg transition-shadow`}
+                  className={`rounded-3xl border overflow-hidden ${darkMode ? 'bg-[#2D3142] border-gray-700' : 'bg-white border-[#7C9885]/10'} shadow-sm hover:shadow-xl transition-all duration-300 group`}
                 >
-                  <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{resource.title}</h3>
-                      <div className="flex space-x-2">
+                  <div className={`p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className={`font-extrabold text-lg leading-tight ${darkMode ? 'text-white' : 'text-[#2D3142] group-hover:text-[#7C9885]'} transition-colors`}>{resource.title}</h3>
+                      <div className="flex space-x-2 shrink-0 ml-4">
                         <button
                           onClick={() => toggleBookmark(resource.id)}
-                          className={`p-1 rounded-full ${bookmarkedResources.includes(resource.id) ? 'text-pink-500' : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${bookmarkedResources.includes(resource.id) ? 'bg-pink-50 text-pink-500' : darkMode ? 'bg-gray-800 text-gray-400 hover:text-pink-400' : 'bg-gray-50 text-gray-400 hover:text-pink-500 hover:bg-pink-50'}`}
                         >
-                          <Heart className="w-5 h-5" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          <Heart className="w-4 h-4" fill={bookmarkedResources.includes(resource.id) ? 'currentColor' : 'none'} />
                         </button>
                         <button
                           onClick={() => markCompleted(resource.id)}
-                          className={`p-1 rounded-full ${completedResources.includes(resource.id) ? 'text-green-500' : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${completedResources.includes(resource.id) ? 'bg-green-50 text-green-500' : darkMode ? 'bg-gray-800 text-gray-400 hover:text-green-400' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}
                         >
-                          <CheckCircle className="w-5 h-5" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
+                          <CheckCircle className="w-4 h-4" fill={completedResources.includes(resource.id) ? 'currentColor' : 'none'} />
                         </button>
                       </div>
                     </div>
-                    <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.description}</p>
+                    <p className={`text-[13px] leading-relaxed font-medium mb-4 line-clamp-2 ${darkMode ? 'text-gray-300' : 'text-[#4A4E69]/80'}`}>
+                      {resource.description}
+                    </p>
 
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {(resource.tags || []).map((tag) => (
                         <span
                           key={tag}
-                          className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
+                          className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#7C9885]/10 text-[#4A4E69]'}`}
                         >
                           {tag}
                         </span>
@@ -1299,31 +1400,31 @@ const MentalWellnessResources = () => {
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5 text-[11px] font-bold uppercase tracking-wider text-[#4A4E69]/60">
                         {getTypeIcon(resource.type)}
-                        <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{resource.duration}</span>
+                        <span>{resource.duration}</span>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1">
                         <button
                           onClick={() => openJournalForResource(resource.id)}
-                          className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${darkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-gray-50 text-gray-400 hover:text-[#2D3142] hover:bg-gray-100'}`}
                         >
-                          <Notebook className="w-5 h-5" />
+                          <Notebook className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => addToPlan(resource)}
-                          className={`p-1 rounded-full ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}
+                          className={`p-2 rounded-xl transition-colors ${darkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-gray-50 text-gray-400 hover:text-[#2D3142] hover:bg-gray-100'}`}
                         >
-                          <Plus className="w-5 h-5" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-4">
+                  <div className={`p-4 ${darkMode ? 'bg-gray-800/50' : 'bg-gray-50/50'}`}>
                     <div className="mb-3">
-                      <h4 className={`text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>WHY THIS HELPS</h4>
-                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{resource.whyHelpful || 'Provides tools for mental wellbeing.'}</p>
+                      <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-[#4A4E69]/50'}`}>WHY THIS HELPS</h4>
+                      <p className={`text-[13px] font-medium leading-relaxed ${darkMode ? 'text-gray-400' : 'text-[#4A4E69]/80'}`}>{resource.whyHelpful || 'Provides tools for mental wellbeing.'}</p>
                     </div>
                     <div className="flex justify-between items-center">
                       {getActionButton(resource)}
@@ -1338,7 +1439,7 @@ const MentalWellnessResources = () => {
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
