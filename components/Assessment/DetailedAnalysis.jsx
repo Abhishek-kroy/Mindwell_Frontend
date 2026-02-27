@@ -79,31 +79,39 @@ const DetailedAnalysis = ({ analysis, onBack }) => {
                             </div>
 
                             <div className="overflow-y-auto pr-4 custom-scrollbar space-y-10">
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                    className="relative p-8 bg-white/30 rounded-3xl border border-white/60"
-                                >
-                                    <p className="text-2xl md:text-3xl text-[#4A4E69] font-light leading-relaxed italic border-l-4 border-[#7C9885] pl-8 py-2">
-                                        "{analysis.summary}"
-                                    </p>
-                                </motion.div>
+                                {(() => {
+                                    const cleanText = (text) => text?.replace(/file:\/\/\/[^ "]+/g, '[Attachment]') || '';
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <InsightCard
-                                        title="Synthesized Insights"
-                                        icon={<Lightbulb size={20} />}
-                                        items={analysis.insights}
-                                        delay={0.6}
-                                    />
-                                    <InsightCard
-                                        title="Proposed Protocol"
-                                        icon={<ListChecks size={20} />}
-                                        items={analysis.recommendations}
-                                        delay={0.8}
-                                    />
-                                </div>
+                                    return (
+                                        <>
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.4 }}
+                                                className="relative p-8 bg-white/30 rounded-3xl border border-white/60"
+                                            >
+                                                <p className="text-2xl md:text-3xl text-[#4A4E69] font-light leading-relaxed italic border-l-4 border-[#7C9885] pl-8 py-2">
+                                                    "{cleanText(analysis.summary)}"
+                                                </p>
+                                            </motion.div>
+
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                                <InsightCard
+                                                    title="Synthesized Insights"
+                                                    icon={<Lightbulb size={20} />}
+                                                    items={analysis.insights?.map(cleanText) || []}
+                                                    delay={0.6}
+                                                />
+                                                <InsightCard
+                                                    title="Proposed Protocol"
+                                                    icon={<ListChecks size={20} />}
+                                                    items={analysis.recommendations?.map(cleanText) || []}
+                                                    delay={0.8}
+                                                />
+                                            </div>
+                                        </>
+                                    );
+                                })()}
 
                                 <div className="flex items-center justify-center gap-4 opacity-20 py-6">
                                     <div className="h-[1px] flex-1 bg-[#2D3142]/20" />
