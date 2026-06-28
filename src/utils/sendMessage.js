@@ -1,44 +1,46 @@
-import { db } from "../../context/firebase/firebase";
-import { collection, addDoc, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { encryptText } from "./encryption";
 import { API_BASE_URL } from "./api";
 
 export async function sendMessage(senderId, receiverId, text, options = {}) {
   if (!text.trim()) return;
 
-  // Step 1: check if a chat already exists between these two users (UID-based)
-  const chatsRef = collection(db, "chats");
-  const q1 = query(chatsRef, where("senderId", "==", senderId), where("receiverId", "==", receiverId));
-  const q2 = query(chatsRef, where("senderId", "==", receiverId), where("receiverId", "==", senderId));
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
 
-  const [s1, s2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-  let chatDoc = !s1.empty ? { id: s1.docs[0].id, ...s1.docs[0].data() } : (!s2.empty ? { id: s2.docs[0].id, ...s2.docs[0].data() } : null);
+  if (!currentUser) throw new Error("User not authenticated");
 
-  // Step 2: If no chat, block sending unless explicitly allowed (e.g. psychiatrist initiated)
-  if (!chatDoc) {
-    if (!options.allowCreate) {
-      throw new Error('Chat not available. Please wait until your request is accepted.');
-    }
-    const newChatRef = await addDoc(collection(db, "chats"), {
+  const idToken = await currentUser.getIdToken();
+
+  // 1. Derive shared symmetric key (password) via sorting UIDs
+  const sharedPassword = [senderId, receiverId].sort().join("_");
+
+  // 2. Encrypt the text payload
+  const encryptedPayload = await encryptText(text.trim(), sharedPassword);
+
+  const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
       senderId,
       receiverId,
-      lastMessage: text,
-      lastMessageAt: new Date(),
-      createdAt: new Date()
-    });
-    chatDoc = { id: newChatRef.id };
-  } else {
-    // update chat with last message
-    await updateDoc(doc(db, "chats", chatDoc.id), {
-      lastMessage: text,
-      lastMessageAt: new Date()
-    });
+      senderName: options.senderName || '', // New field
+      receiverName: options.receiverName || '', // New field
+      text: encryptedPayload.data,     // Send encrypted text
+      iv: encryptedPayload.iv,        // Required for decryption
+      salt: encryptedPayload.salt,    // Required for decryption
+      options,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to send message");
   }
 
-  // Step 3: Add message to messages subcollection
-  await addDoc(collection(db, "chats", chatDoc.id, "messages"), {
-    senderId,
-    receiverId,
-    text,
-    timestamp: new Date()
-  });
+  return data;
 }

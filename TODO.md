@@ -40,3 +40,9 @@ Create an agentic AI using Gemini to suggest wellness resources from WellnessRes
 - ✅ Resource display with YouTube video embedding
 - ✅ User history tracking
 - ✅ Responsive design with dark mode support
+
+## Completed: Crisis SOS Safety Net
+- [x] On-device crisis/distress detector (recall-biased, EN + Hinglish)
+- [x] Global, event-driven SafetyProvider + always-on floating help button
+- [x] Calm crisis-support modal: verified helplines, emergency call, grounding exercise, professional CTA
+- [x] Integrated into AI chat + community posting

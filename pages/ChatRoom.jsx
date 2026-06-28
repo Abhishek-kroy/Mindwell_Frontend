@@ -1,14 +1,41 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { db } from "../context/firebase/firebase";
-import { collection, query, orderBy, onSnapshot, where, getDocs, addDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, where, getDocs, addDoc, doc, getDoc } from "firebase/firestore";
 import { sendMessage } from "../src/utils/sendMessage";
+import { decryptText } from "../src/utils/encryption";
 
-function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack }) {
+function ChatRoom({ chatId, userId, userName, otherUserId, otherUserName, userRole, onBack }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [resolvedChatId, setResolvedChatId] = useState(chatId || null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const [fetchedOtherUserName, setFetchedOtherUserName] = useState('');
+
+  // Fetch the actual name from the users collection explicitly
+  useEffect(() => {
+    async function fetchName() {
+      if (!otherUserId) return;
+      try {
+        const userDoc = await getDoc(doc(db, "users", otherUserId));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          let name = data.name || data.firstName || '';
+          if (['psychiatrist', 'doctor', 'company_doctor'].includes(data.role)) {
+            name = `Doc. ${name}`;
+          }
+          setFetchedOtherUserName(name);
+        }
+      } catch (err) {
+        console.error("Failed to fetch other user name", err);
+      }
+    }
+    fetchName();
+  }, [otherUserId]);
+
+  const displayOtherUserName = fetchedOtherUserName || otherUserName || "User";
 
   // Resolve existing chat id if not provided
   useEffect(() => {
@@ -58,11 +85,30 @@ function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack
       collection(db, "chats", resolvedChatId, "messages"),
       orderBy("timestamp", "asc")
     );
-    const unsubscribe = onSnapshot(q, snapshot => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubscribe = onSnapshot(q, async snapshot => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sharedPassword = [userId, otherUserId].sort().join("_");
+
+      const decryptedDocs = await Promise.all(docs.map(async d => {
+        if (d.iv && d.salt) {
+          try {
+            const decText = await decryptText({ data: d.text, iv: d.iv, salt: d.salt }, sharedPassword);
+            return { ...d, text: decText };
+          } catch (e) {
+            return { ...d, text: "🔒 Decryption Failed" };
+          }
+        }
+        return d;
+      }));
+      setMessages(decryptedDocs);
     });
     return () => unsubscribe();
-  }, [resolvedChatId]);
+  }, [resolvedChatId, userId, otherUserId]);
+
+  // Auto-scroll to bottom when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
@@ -70,8 +116,22 @@ function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack
     setNewMessage(""); // Clear input instantly for snappy UI feedback
     setError("");
 
+    // Optimistically update UI
+    const optimisticMsg = {
+      id: 'opt_' + Date.now(),
+      senderId: userId,
+      receiverId: otherUserId,
+      text: messageToSend,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
     try {
-      await sendMessage(userId, otherUserId, messageToSend, { allowCreate: userRole === 'psychiatrist' });
+      await sendMessage(userId, otherUserId, messageToSend, {
+        allowCreate: userRole === 'psychiatrist',
+        senderName: userName || 'User',
+        receiverName: displayOtherUserName
+      });
 
       // If chat was just created (e.g., psychiatrist initiated), resolve it now
       if (!resolvedChatId) {
@@ -89,10 +149,13 @@ function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack
             }
           });
           if (foundId) setResolvedChatId(foundId);
-        } catch (_) { }
+        } catch (_) {
+          // ignore block
+        }
       }
     } catch (e) {
       // Revert if sending failed
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       setNewMessage(messageToSend);
       setError(e?.message || "Failed to send message");
     }
@@ -112,10 +175,10 @@ function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack
             </svg>
           </button>
           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md`}>
-            {(otherUserName || otherUserId).charAt(0).toUpperCase()}
+            {displayOtherUserName.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-800">{otherUserName || "Secured Sanctuary"}</h3>
+            <h3 className="text-sm font-bold text-slate-800">{displayOtherUserName}</h3>
             <div className="flex items-center text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
               <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 animate-pulse" />
               Secure Link Active
@@ -181,6 +244,7 @@ function ChatRoom({ chatId, userId, otherUserId, otherUserName, userRole, onBack
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}

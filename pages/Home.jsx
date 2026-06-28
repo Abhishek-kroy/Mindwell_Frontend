@@ -552,7 +552,7 @@ export default function Home() {
             <div>
               <h2 className="text-4xl md:text-5xl font-bold text-[#2D3142] mb-8">Guided by Science,<br />Driven by Heart</h2>
               <p className="text-[#4A4E69] text-xl font-light leading-relaxed mb-12">
-                MindWell was founded on the belief that premium mental health tools shouldn't be a luxury. We've built a sanctuary where technology serves the soul.
+                Mindwell was founded on the belief that premium mental health tools shouldn't be a luxury. We've built a sanctuary where technology serves the soul.
               </p>
 
               <div className="space-y-8">
@@ -613,60 +613,88 @@ export default function Home() {
         </motion.section>
       </main>
 
-      {/* Footer - Enhanced Responsive */}
-<footer className="bg-gray-50 border-t border-gray-200 mt-8 sm:mt-12 lg:mt-20">
-  <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
-      <div className="col-span-2 sm:col-span-2 lg:col-span-1">
-        <div className="flex items-center space-x-2 mb-3 sm:mb-4">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-1 sm:p-2 rounded-lg">
-            <Brain className="h-3 sm:h-4 lg:h-5 w-3 sm:w-4 lg:w-5 text-white" />
-          </div>
-          <span className="text-sm sm:text-base lg:text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            MindWell
-          </span>
+      {/* Founders Section CTA */}
+      <section className="relative bg-white border-t border-[#7C9885]/10 mt-24 py-20 overflow-hidden">
+        <div className="absolute inset-0 z-0 opacity-30">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-100/50 rounded-full blur-3xl mix-blend-multiply" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl mix-blend-multiply" />
         </div>
-        <p className="text-gray-600 text-xs sm:text-sm lg:text-base">
-          Supporting your mental wellness journey with compassionate, evidence-based tools and community.
-        </p>
-      </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-[#2D3142] mb-6 tracking-tight">Meet the Founders</h2>
+            <p className="text-[#4A4E69] text-xl font-light leading-relaxed mb-10">
+              Discover the minds and the mission behind Mindwell. We are a team of passionate engineers committed to democratizing mental wellness.
+            </p>
+            <Link
+              to="/founders"
+              className="inline-flex items-center gap-3 bg-white border border-[#7C9885]/30 text-[#2D3142] px-10 py-5 rounded-[1.25rem] text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 hover:bg-[#F9FBFF]"
+            >
+              Get to know us
+              <ArrowRight className="h-5 w-5 text-[#7C9885]" />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
 
-      <div>
-        <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Support</h4>
-        <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-          <li><Link to="/resources" className="hover:text-purple-600">Wellness Hub</Link></li>
-          <li><a href="mailto:mindwell319@gmail.com" className="hover:text-purple-600">Contact Us</a></li>
-        </ul>
-      </div>
+      {/* Footer - Enhanced Responsive */}
+      <footer className="bg-gray-50 border-t border-gray-200 mt-8 sm:mt-12 lg:mt-20">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
+            <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center space-x-2 mb-3 sm:mb-4">
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-1 sm:p-2 rounded-lg">
+                  <Brain className="h-3 sm:h-4 lg:h-5 w-3 sm:w-4 lg:w-5 text-white" />
+                </div>
+                <span className="text-sm sm:text-base lg:text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Mindwell
+                </span>
+              </div>
+              <p className="text-gray-600 text-xs sm:text-sm lg:text-base">
+                Supporting your mental wellness journey with compassionate, evidence-based tools and community.
+              </p>
+            </div>
 
-      <div>
-        <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Community</h4>
-        <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-          <li><Link to="/community" className="hover:text-purple-600">Hive Network</Link></li>
-          <li><Link to="/chatbot" className="hover:text-purple-600">24/7 Chat</Link></li>
-        </ul>
-      </div>
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Support</h4>
+              <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                <li><Link to="/resources" className="hover:text-purple-600">Wellness Hub</Link></li>
+                <li><a href="mailto:vaam319@gmail.com" className="hover:text-purple-600">Contact Us</a></li>
+              </ul>
+            </div>
 
-      <div>
-        <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Professional Help</h4>
-        <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-          <li><Link to="/add-request" className="hover:text-purple-600">Connect with Psychiatrist</Link></li>
-          <li><Link to="/privacy-policy" className="hover:text-purple-600">Privacy Policy</Link></li>
-          <li><Link to="/terms-of-service" className="hover:text-purple-600">Terms of Service</Link></li>
-        </ul>
-      </div>
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Community</h4>
+              <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                <li><Link to="/community" className="hover:text-purple-600">Hive Network</Link></li>
+                <li><Link to="/chatbot" className="hover:text-purple-600">24/7 Chat</Link></li>
+              </ul>
+            </div>
 
-      <div>
-        <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Not a Student?</h4>
-        <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-          <li><Link to="/psychiatrist-auth" className="hover:text-purple-600">Psychiatrist Login</Link></li>
-          <li><Link to="/admin-auth" className="hover:text-purple-600">Admin Login</Link></li>
-          <li><Link to="/view-requests" className="hover:text-purple-600">View All Requests</Link></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</footer>
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Professional Help</h4>
+              <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                <li><Link to="/add-request" className="hover:text-purple-600">Connect with Psychiatrist</Link></li>
+                <li><Link to="/privacy-policy" className="hover:text-purple-600">Privacy Policy</Link></li>
+                <li><Link to="/terms-of-service" className="hover:text-purple-600">Terms of Service</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base">Not a Student?</h4>
+              <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
+                <li><Link to="/psychiatrist-auth" className="hover:text-purple-600">Psychiatrist Login</Link></li>
+                <li><Link to="/admin-auth" className="hover:text-purple-600">Admin Login</Link></li>
+                <li><Link to="/view-requests" className="hover:text-purple-600">View All Requests</Link></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* Audio Control */}
       <motion.button

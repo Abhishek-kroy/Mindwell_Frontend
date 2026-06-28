@@ -13,6 +13,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../context/firebase/firebase";
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
+import { SafetyProvider } from "../components/Safety/SafetyProvider";
 
 // ✅ Lazy load all pages
 import Home from "../pages/Home";
@@ -31,6 +32,7 @@ const MyChats = lazy(() => import("../pages/MyChats"));
 
 const ViewRequests = lazy(() => import("../pages/ViewRequests"));
 const SuggestedResources = lazy(() => import("../pages/SuggestedResources"));
+const Founders = lazy(() => import("../pages/Founders"));
 import AdminReportsPage from '../pages/AdminReportsPage';
 
 const hideHeaderOnPaths = ["/auth"];
@@ -84,6 +86,14 @@ function AppShell() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('config', 'G-1K3YRQRFTP', {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
+
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   useEffect(() => {
@@ -133,6 +143,7 @@ function AppShell() {
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/admin-reports" element={<AdminReportsPage />} />
+              <Route path="/founders" element={<Founders />} />
               <Route
                 path="/my-chats"
                 element={
@@ -175,7 +186,9 @@ function AppShell() {
 function App() {
   return (
     <Router>
-      <AppShell />
+      <SafetyProvider>
+        <AppShell />
+      </SafetyProvider>
     </Router>
   );
 }

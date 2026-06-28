@@ -5,7 +5,7 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode,
   const [playingVideo, setPlayingVideo] = useState(null);
 
   const getYoutubeEmbedUrl = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     if (match && match[2].length === 11) {
       // Restore standard controls for seeking, speed, quality
@@ -108,8 +108,8 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode,
                   key={v.url}
                   onClick={() => setPlayingVideo(v)}
                   className={`group/btn flex flex-col rounded-2xl overflow-hidden transition-all duration-500 border text-left ${darkMode
-                      ? 'bg-gray-900/40 border-gray-800 hover:border-[#7C9885]/40'
-                      : 'bg-gray-50/50 border-gray-100 hover:border-[#7C9885]/30 hover:bg-white hover:shadow-xl'
+                    ? 'bg-gray-900/40 border-gray-800 hover:border-[#7C9885]/40'
+                    : 'bg-gray-50/50 border-gray-100 hover:border-[#7C9885]/30 hover:bg-white hover:shadow-xl'
                     }`}
                 >
                   <div className="relative aspect-video overflow-hidden">
@@ -135,7 +135,7 @@ const MessageBubble = ({ message, videoSuggestions, isUser, timestamp, darkMode,
 
         {/* Professional Video Overlay (Modal-style) */}
         {playingVideo && activeEmbedUrl && (
-          <div id="mindwell-video-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300">
+          <div id="vaam-video-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300">
             <div
               className="absolute inset-0 bg-black/95 backdrop-blur-md"
               onClick={() => setPlayingVideo(null)}

@@ -2,13 +2,26 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 // import { speakText } from '../services/TextToSpeech';
 import { getAuth } from 'firebase/auth';
 import { API_BASE_URL } from '../../src/utils/api';
+import { checkAndAlertCrisis } from '../../src/utils/crisisDetection';
+
+let chatCache = {
+  messages: [],
+  sessionRef: null,
+  videoSuggestions: []
+};
 
 const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(chatCache.messages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sessionRef, setSessionRef] = useState(null);
-  const [videoSuggestions, setVideoSuggestions] = useState([]);
+  const [sessionRef, setSessionRef] = useState(chatCache.sessionRef);
+  const [videoSuggestions, setVideoSuggestions] = useState(chatCache.videoSuggestions);
+
+  useEffect(() => {
+    chatCache.messages = messages;
+    chatCache.sessionRef = sessionRef;
+    chatCache.videoSuggestions = videoSuggestions;
+  }, [messages, sessionRef, videoSuggestions]);
 
   const actuallySendRequest = useCallback(async (content, updatedHistory) => {
     try {
@@ -25,10 +38,11 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
           Authorization: `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          prompt: content,   
+          prompt: content,
           isComplex,
           history: updatedHistory,
-          sessionRef
+          sessionRef,
+          enableTTS // Pass enableTTS to the backend
         }),
       });
 
@@ -51,6 +65,7 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
 
       let accumulatedText = '';
       let buffer = '';
+      let lastSpokenIndex = 0; // Track the index of the last character spoken
 
       while (true) {
         const { done, value } = await reader.read();
@@ -70,6 +85,8 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
                 setMessages(prev => prev.map(msg =>
                   msg.id === aiMessageId ? { ...msg, content: accumulatedText } : msg
                 ));
+
+
               }
 
               if (data.done) {
@@ -78,6 +95,10 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
                   setMessages(prev => prev.map(msg =>
                     msg.id === aiMessageId ? { ...msg, videoSuggestions: data.videos } : msg
                   ));
+                }
+                if (enableTTS && accumulatedText) {
+                  const audio = new Audio('response.wav');
+                  audio.play().catch(e => console.warn('Audio play failed', e));
                 }
               }
             } catch (e) {
@@ -93,10 +114,13 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isComplex, sessionRef]);
+  }, [isComplex, sessionRef, enableTTS]);
 
   const sendMessage = useCallback((content) => {
     if (!content.trim()) return;
+
+    // Crisis SOS Safety Net: scan the user's message; opens support if at risk.
+    checkAndAlertCrisis(content, 'chat');
 
     const userMessage = {
       id: Date.now(),
@@ -140,7 +164,7 @@ const useChat = ({ enableTTS = true, isComplex = false } = {}) => {
     setMessages([]);
     setError(null);
     setSessionRef(null);
-  }, [enableTTS, isComplex, sessionRef]);
+  }, []); // Dependencies removed as they are not needed for clearing state
 
   return {
     messages,

@@ -145,8 +145,8 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
             border-r flex flex-col h-full overflow-hidden z-20
           `}
         >
-          <div className={`transition-opacity duration-300 ${showHistory ? 'opacity-100' : 'opacity-0 invisible'}`}>
-            <div className="flex justify-between items-center mb-8 pl-2">
+          <div className={`transition-opacity duration-300 ${showHistory ? 'opacity-100 flex flex-col h-full' : 'opacity-0 invisible hidden'}`}>
+            <div className="flex justify-between items-center mb-8 pl-2 flex-shrink-0">
               <h2 className={`text-[10px] font-black tracking-[0.25em] uppercase ${darkMode ? 'text-gray-500' : 'text-[#7C9885]'}`}>Insights History</h2>
               <button
                 onClick={() => setShowHistory(false)}
@@ -155,7 +155,7 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
               <SessionPanel
                 onSelectSession={handleSelectSession}
                 darkMode={darkMode}
@@ -179,7 +179,7 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
               )}
               <div className="flex flex-col">
                 <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-                  <span className={darkMode ? 'text-[#7C9885]' : 'text-[#5E7A67]'}>MindWell</span>
+                  <span className={darkMode ? 'text-[#7C9885]' : 'text-[#5E7A67]'}>Mindwell</span>
                   <span className="font-medium opacity-80">Counselor</span>
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -226,7 +226,7 @@ const ChatWindow = ({ darkMode, currentUser, checkingAuth }) => {
                 </h2>
 
                 <p className={`text-base md:text-lg opacity-60 max-w-lg mx-auto leading-relaxed mb-16 font-medium`}>
-                  MindWell AI is more than a chatbot—it's a supportive companion designed to listen, reflect, and guide you through life's complexities.
+                  Mindwell AI is more than a chatbot—it's a supportive companion designed to listen, reflect, and guide you through life's complexities.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto w-full">

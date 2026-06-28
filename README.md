@@ -113,7 +113,7 @@ MindWell is a digital companion for mental health, offering:
 
 ```bash
 # Clone the repo
-git clone https://github.com/Abhishek-kroy/Mindwell_Frontend
+git clone https://github.com/ShubhamY90/Mindwell_Frontend_F
 cd MindWell
 
 # Install dependencies
@@ -168,3 +168,23 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to explore t
 
 This README aims to provide a clear, concise, and comprehensive guide to the MindWell project for judges and reviewers. For any questions or further details, please refer to the source code or contact the development team.
 # MindWell_Frontend_F
+
+---
+
+## 🆘 Crisis SOS Safety Net  (new)
+
+A safety-first layer that connects a user in acute distress with immediate human help.
+
+**How it works**
+- `src/utils/crisisDetection.js` runs a fast, **on-device** first-pass scan of chat messages and community posts for language indicating distress or self-harm risk (English + Roman-Hindi). It is intentionally tuned to favour **recall over precision** — a missed cry for help is far costlier than an extra support prompt.
+- When a message is flagged, it dispatches a decoupled `mindwell:crisis` DOM event.
+- **AI second pass (`src/utils/crisisClassifier.js`):** for cases the keyword list can't catch (euphemism, sarcasm, indirect phrasing), the same text is sent to **Gemini** for a nuanced risk classification. It's a *non-blocking* second opinion — the on-device check still surfaces help instantly, and Gemini can escalate borderline cases a moment later. If the API is unavailable it silently falls back to the keyword result.
+- `components/Safety/SafetyProvider.jsx` (mounted once at the app root) listens for that event and opens `CrisisSupportModal.jsx`, which shows verified 24×7 helplines (Tele MANAS, KIRAN, Vandrevala, AASRA, iCall), an emergency call button (112), a 60-second grounding exercise, and a route to a real professional.
+- An always-available floating **“Need support?”** button lets anyone open the help panel manually at any time.
+
+**Why this design**
+- **Privacy:** detection is fully client-side, so sensitive self-harm disclosures are never transmitted to a server.
+- **Resilience:** it works even when the ML moderation service is offline.
+- **Decoupled:** the event-driven trigger means any future surface can plug into the safety net with one function call (`checkAndAlertCrisis(text, source)`).
+
+> Helpline numbers are centralised in `src/utils/crisisResources.js` and must be re-verified before each production release.
