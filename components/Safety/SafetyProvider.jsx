@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { LifeBuoy } from "lucide-react";
 import CrisisSupportModal from "./CrisisSupportModal";
 import { CRISIS_EVENT } from "../../src/utils/crisisDetection";
 
@@ -47,18 +46,6 @@ export const SafetyProvider = ({ children }) => {
   return (
     <SafetyContext.Provider value={{ openSupport, closeSupport }}>
       {children}
-
-      {/* Always-available floating help button (bottom-left to avoid clashing
-          with chat / toast UI on the bottom-right). */}
-      <button
-        onClick={() => openSupport("manual")}
-        aria-label="Get crisis support"
-        title="Need support now?"
-        className="fixed bottom-5 left-5 z-[900] flex items-center gap-2 rounded-full bg-[#7C9885] text-white shadow-lg shadow-[#7C9885]/30 pl-3 pr-4 py-3 hover:bg-[#5f7a68] active:scale-95 transition"
-      >
-        <LifeBuoy className="h-5 w-5" />
-        <span className="text-sm font-bold hidden sm:inline">Need support?</span>
-      </button>
 
       <CrisisSupportModal open={open} onClose={closeSupport} trigger={trigger} />
     </SafetyContext.Provider>

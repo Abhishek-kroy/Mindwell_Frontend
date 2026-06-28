@@ -76,6 +76,7 @@ export const Header = () => {
                 <NavItem icon={Stars} label="Mood Tracker" to="/therapies" />
                 <NavItem icon={Stars} label="Hive Network" to="/community" />
                 <NavItem icon={Stars} label="Wellness Hub" to="/resources" />
+                <NavItem icon={Stars} label="Find Resources" to="/resource-finder" />
                 {/* <NavItem icon={Stars} label="Students" to="/psychiatrist" /> */}
               </div>
             </nav>
@@ -134,6 +135,7 @@ export const Header = () => {
                 <MobileNavItem label="My Chats" to="/my-chats" onClick={toggleMobileMenu} />
                 <MobileNavItem label="Mood Tracker" to="/therapies" onClick={toggleMobileMenu} />
                 <MobileNavItem label="Hive Network" to="/community" onClick={toggleMobileMenu} />
+                <MobileNavItem label="Find Resources" to="/resource-finder" onClick={toggleMobileMenu} />
 
                 <div className="pt-10 border-t border-gray-100 mt-10">
                   <button
